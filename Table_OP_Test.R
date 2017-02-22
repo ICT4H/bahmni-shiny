@@ -4,6 +4,9 @@ library(data.table)
 library(purrr)
 obs_tod_pres <- read_csv("obs_tod_presentation.csv")
 
+numeric_cols <- obs_tod_pres %>% map_lgl(is.numeric)
+names(obs_tod_pres)[obs_tod_pres %>% map_lgl(is.numeric)]
+
 obs_tod_pres_1 <- obs_tod_pres %>% rename(PatID = `Patient Identifier`,ObsDate = `Obs Date`) 
 obs_tod_pres_2 <- as.data.frame(obs_tod_pres_1 %>% map(function(x){
   ifelse(is.na(x),"",x)

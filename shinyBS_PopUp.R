@@ -37,5 +37,9 @@ shinyApp(
       observeEvent(input$styleSelect, ({
         updateCollapse(session, "collapseExample", style = list("Panel 1" = input$styleSelect))
       }))
+      observeEvent(input$collapseExample,({
+        cat("\n. Collapse:")
+        cat(input$collapseExample)
+      }))
     }
 )

@@ -17,6 +17,7 @@ library(ggplot2)
 library(DT)
 library(shinyjs)
 library(shinyBS)
+library(purrr)
 options(shiny.trace=F)
 
 pool <- dbPool(
@@ -100,10 +101,10 @@ ui <- fluidPage(
                                           choices=c(""))
                      )),
                      mainPanel(
-                       bsCollapse(id = "inCollapseAddCols", open = "Add Columns",
-                                  bsCollapsePanel("Panel 1", "This is a panel.", fluidRow(
+                       bsCollapse(id = "inCollapseAddCols",
+                                  bsCollapsePanel("Add Columns", fluidRow(
                                     column(4,
-                                           "4"
+                                           selectizeInput("inNumericCols","Numeric Columns:", choices=c(""))
                                     )   
                                   ),
                                   fluidRow(
@@ -504,6 +505,14 @@ server <- function(input, output, session) {
       dots <- lapply(grp_cols, as.symbol)
       tableop <- ftable(obs[grp_cols])
       output$tableDF <- renderTable(as.matrix(tableop),rownames = T)
+    }
+  })
+  #Add Categorical Columns
+  observeEvent(input$inCollapseAddCols,{
+    if(input$inCollapseAddCols == "Add Columns"){
+      numeric_columns <- names(obs_data())[obs_data() %>% 
+                                             map_lgl(is.numeric)]
+      updateSelectizeInput(session,"inNumericCols",choices = numeric_columns,selected = NULL)
     }
   })
 }
