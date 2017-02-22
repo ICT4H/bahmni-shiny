@@ -2,6 +2,16 @@ library(dplyr)
 library(readr)
 library(data.table)
 library(purrr)
+
+df_tmp <- data.frame(x=c("ab","adsb","cdfs"),y=c("1","2","3"))
+col_bf <- c("x")
+col_af <- c("x","y")
+df_tmp[!col_af %in% col_bf]
+df_tmp_1 <- as.data.frame(df_tmp %>% map(~ as.numeric(as.character(.)))) %>% 
+  map_lgl(~sum(is.na(.)) ==0)
+col_n <- names(df_tmp_1)[df_tmp_1]
+df_tmp_2 <- df_tmp %>% mutate_each_(funs(as.numeric(as.character(.))), col_n)
+
 obs_tod_pres <- read_csv("obs_tod_presentation.csv")
 
 numeric_cols <- obs_tod_pres %>% map_lgl(is.numeric)

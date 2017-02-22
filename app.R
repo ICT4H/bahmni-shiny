@@ -1,5 +1,3 @@
-## Simple datatable
-
 library("dplyr")
 library("tidyr")
 library("stringr")
@@ -40,6 +38,7 @@ age <- function(from, to) {
 ui <- fluidPage(
   useShinyjs(),
   tags$head(tags$style(".rightAlign{float:right;}")),
+  tags$head(tags$style(".btnbottomAlign{margin-top: 25px;}")),
   bsButton("inExplorer", label = "Files",
            block = F, type = "toggle", value = TRUE),
   pageWithSidebar(
@@ -105,12 +104,27 @@ ui <- fluidPage(
                                   bsCollapsePanel("Add Columns", fluidRow(
                                     column(4,
                                            selectizeInput("inNumericCols","Numeric Columns:", choices=c(""))
-                                    )   
+                                           ),
+                                    column(2,
+                                           numericInput("inStartRange","Start", value="")
+                                          ),
+                                    column(2,
+                                           numericInput("inEndRange","End", value="")
+                                          ),
+                                    column(2,
+                                           textInput("inLevelName","Name", value="")
+                                          ),
+                                    column(1,
+                                           actionButton("inAddLevel", label = "+", class = 'btnbottomAlign')
+                                          ) 
                                   ),
                                   fluidRow(
                                     column(3,
-                                           "3"
-                                    )
+                                           selectizeInput("inCatLevels","Levels:", choices=c(""))
+                                          ),
+                                    column(3,
+                                           actionButton("inApplyColumn","Apply", class = 'btnbottomAlign')
+                                          )
                                   ),style = "info")
                        ),
                        DT::dataTableOutput("obsDT")
@@ -380,7 +394,8 @@ server <- function(input, output, session) {
              value_coded = as.factor(value_coded),
              concept_name = as.factor(concept_name),
              obs_datetime= ymd_hms(obs_datetime),
-             value_datetime = ymd_hms(value_datetime))
+             value_datetime = ymd_hms(value_datetime),
+             obs_group_id = as.factor(obs_group_id))
     
     if(dateBy == 1){#ObsDate
       obs <- obs %>% 
@@ -433,8 +448,8 @@ server <- function(input, output, session) {
              )
       ) %>% 
       select(-identifier) %>% 
-      rename(`Patient Identifier` = person_id,
-             `Obs Date` = obs_datetime,
+      rename(Patient.Identifier = person_id,
+             Obs.Date = obs_datetime,
              Question = concept_name,
              ID = obs_id,
              Location = location_id,
@@ -445,24 +460,38 @@ server <- function(input, output, session) {
       filter(!is.na(Value)) %>% 
       select(-Key) %>% 
       rename(Answer = Value, Comments = comments) %>% 
-      select(ID, `Patient Identifier`, 
+      select(ID, Patient.Identifier, 
              Gender, Age, Question, 
-             `Obs Date`, Location, 
+             Obs.Date, Location, 
              Answer, Comments, GroupID)
     cat("number of obs: ")
     cat(nrow(obs))
     obs_dt <- NULL
     if(nrow(obs) > 0){
+      cols_bf <- names(obs)
+
       obs <- obs %>% spread(Question, Answer)
+      names(obs) <- make.names(names(obs))
+      cols_af <- names(obs)
+  
       obs <- obs %>% replace(is.na(obs),"")
+      #Check if any of the newly added columns via spread are completely numeric which can be
+      #converted to as.numeric
+      df_newly_added_cols <- obs[cols_af[!(cols_af %in% cols_bf)]]
+      cols_with_no_na <- as.data.frame(df_newly_added_cols %>% map(~ as.numeric(as.character(.)))) %>% 
+        map_lgl(~sum(is.na(.)) ==0)
+      col_n <- names(cols_with_no_na)[cols_with_no_na]
+
       obs_dt <- data.table(obs)
   
       obs_dt <- obs_dt[, lapply(.SD, paste0, collapse=" "),
-                       by=list(GroupID, `Patient Identifier`, Gender, Age,`Obs Date`,Location)]
+                       by=list(GroupID, Patient.Identifier, Gender, Age, Obs.Date,Location)]
       obs_dt <- as.data.frame(obs_dt)
       obs_dt[, sapply(obs_dt, is.character)] <-
         sapply(obs_dt[, sapply(obs_dt, is.character)],
                str_trim)
+      
+      obs_dt <- obs_dt %>% mutate_each_(funs(as.numeric(as.character(.))), col_n)
     }
     obs_dt
   })
@@ -514,6 +543,16 @@ server <- function(input, output, session) {
                                              map_lgl(is.numeric)]
       updateSelectizeInput(session,"inNumericCols",choices = numeric_columns,selected = NULL)
     }
+  })
+  catColumns <- reactiveValues(data = list())
+  #Addlevel to a column
+  observeEvent(input$inAddLevel,{
+    newlevel <- list("Name" = input$inLevelName,
+                    "Range" = c("From"= as.numeric(input$inStartRange),"To"= as.numeric(input$inEndRange))
+                    )
+    catColumns$data[[length(catColumns$data) + 1]] = newlevel
+    levelnames <- catColumns$data %>% map_chr("Name")
+    updateSelectizeInput(session, "inCatLevels", choices = levelnames)
   })
 }
 
