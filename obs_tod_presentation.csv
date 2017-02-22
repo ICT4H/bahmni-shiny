@@ -1,0 +1,106 @@
+"","ID","Patient Identifier","Gender","Age","Obs Date","Location","Comments","Delivery Note, Fetal Presentation","Delivery Note, Method of Delivery"
+"1",7189840,"BAH208784","F",24,2016-11-01,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"2",7189855,"BAH208784","F",24,2016-11-01,"16",NA,"Cephalic Presentation",NA
+"3",7193052,"BAH260776","F",22,2016-11-03,"16",NA,"Cephalic Presentation",NA
+"4",7193078,"BAH260776","F",22,2016-11-03,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"5",7193146,"BAH260840","F",27,2016-11-03,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"6",7193158,"BAH260840","F",27,2016-11-03,"16",NA,"Cephalic Presentation",NA
+"7",7206607,"BAH126879","F",22,2016-11-03,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"8",7206623,"BAH126879","F",22,2016-11-03,"16",NA,"Cephalic Presentation",NA
+"9",7216173,"BAH266845","F",19,2016-11-04,"16",NA,"Cephalic Presentation",NA
+"10",7216191,"BAH266845","F",19,2016-11-04,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"11",7216258,"BAH229535","F",20,2016-11-04,"16",NA,"Cephalic Presentation",NA
+"12",7216269,"BAH229535","F",20,2016-11-04,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"13",7216791,"BAH251471","F",17,2016-11-05,"16",NA,"Cephalic Presentation",NA
+"14",7216803,"BAH251471","F",17,2016-11-05,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"15",7218013,"BAH247245","F",22,2016-11-06,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"16",7218030,"BAH247245","F",22,2016-11-06,"16",NA,"Cephalic Presentation",NA
+"17",7218044,"BAH266769","F",27,2016-11-06,"16",NA,"Cephalic Presentation",NA
+"18",7218054,"BAH266769","F",27,2016-11-06,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"19",7223934,"BAH243353","F",23,2016-11-06,"16",NA,"Cephalic Presentation",NA
+"20",7223941,"BAH243353","F",23,2016-11-06,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"21",7228240,"BAH266851","F",19,2016-11-07,"16",NA,"Breech Presentation",NA
+"22",7228243,"BAH266851","F",19,2016-11-07,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"23",7242065,"BAH240189","F",21,2016-11-07,"16",NA,"Cephalic Presentation",NA
+"24",7242067,"BAH240189","F",21,2016-11-07,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"25",7247902,"BAH255403","F",23,2016-11-08,"16",NA,"Cephalic Presentation",NA
+"26",7247909,"BAH255403","F",23,2016-11-08,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"27",7253001,"BAH256718","F",20,2016-11-02,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"28",7253011,"BAH256718","F",20,2016-11-02,"16","Second Baby Breech","Cephalic Presentation",NA
+"29",7257299,"BAH267076","F",40,2016-11-08,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"30",7257306,"BAH267076","F",40,2016-11-08,"16",NA,"Cephalic Presentation",NA
+"31",7257360,"BAH165789","F",19,2016-11-09,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"32",7257371,"BAH165789","F",19,2016-11-09,"16",NA,"Cephalic Presentation",NA
+"33",7257677,"BAH266648","F",35,2016-11-09,"16",NA,"Cephalic Presentation",NA
+"34",7257684,"BAH266648","F",35,2016-11-09,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"35",7268368,"BAH245847","F",21,2016-11-09,"16",NA,"Cephalic Presentation",NA
+"36",7268400,"BAH245847","F",21,2016-11-09,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"37",7277131,"BAH200689","F",20,2016-11-10,"16",NA,"Cephalic Presentation",NA
+"38",7277152,"BAH200689","F",20,2016-11-10,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"39",7289511,"BAH251770","F",22,2016-11-11,"16",NA,"Cephalic Presentation",NA
+"40",7289535,"BAH251770","F",22,2016-11-11,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"41",7289753,"BAH243930","F",32,2016-11-12,"16",NA,"Cephalic Presentation",NA
+"42",7289761,"BAH243930","F",32,2016-11-12,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"43",7291128,"BAH222684","F",23,2016-11-13,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"44",7291135,"BAH222684","F",23,2016-11-13,"16",NA,"Cephalic Presentation",NA
+"45",7302053,"BAH254104","F",23,2016-11-14,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"46",7302063,"BAH254104","F",23,2016-11-14,"16",NA,"Cephalic Presentation",NA
+"47",7324531,"BAH251432","F",29,2016-11-16,"16",NA,"Cephalic Presentation",NA
+"48",7324545,"BAH251432","F",29,2016-11-16,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"49",7324699,"BAH174067","F",25,2016-11-16,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"50",7324707,"BAH174067","F",25,2016-11-16,"16",NA,"Cephalic Presentation",NA
+"51",7324805,"BAH144798","F",28,2016-11-17,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"52",7324809,"BAH144798","F",28,2016-11-17,"16",NA,"Cephalic Presentation",NA
+"53",7324840,"BAH145445","F",18,2016-11-17,"16",NA,"Cephalic Presentation",NA
+"54",7324856,"BAH267774","F",23,2016-11-17,"16",NA,"Cephalic Presentation",NA
+"55",7331258,"BAH247547","F",20,2016-11-17,"16",NA,"Cephalic Presentation",NA
+"56",7331291,"BAH247547","F",20,2016-11-17,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"57",7337534,"BAH242786","F",22,2016-11-18,"16",NA,"Cephalic Presentation",NA
+"58",7337544,"BAH242786","F",22,2016-11-18,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"59",7345499,"BAH250697","F",22,2016-11-11,"16",NA,"Cephalic Presentation",NA
+"60",7345511,"BAH250697","F",22,2016-11-11,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"61",7345653,"BAH267065","F",27,2016-11-08,"16",NA,"Cephalic Presentation",NA
+"62",7345670,"BAH267065","F",27,2016-11-08,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"63",7346766,"BAH221817","F",19,2016-11-18,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"64",7346795,"BAH221817","F",19,2016-11-18,"16",NA,"Cephalic Presentation",NA
+"65",7346823,"BAH226497","F",18,2016-11-19,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"66",7346838,"BAH226497","F",18,2016-11-19,"16",NA,"Cephalic Presentation",NA
+"67",7346852,"BAH259487","F",22,2016-11-19,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"68",7346863,"BAH259487","F",22,2016-11-19,"16",NA,"Cephalic Presentation",NA
+"69",7348126,"BAH267942","F",23,2016-11-19,"16",NA,"Cephalic Presentation",NA
+"70",7348130,"BAH267942","F",23,2016-11-19,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"71",7348149,"BAH234975","F",23,2016-11-19,"16",NA,"Cephalic Presentation",NA
+"72",7348162,"BAH234975","F",23,2016-11-19,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"73",7356076,"BAH267968","F",21,2016-11-20,"16",NA,"Cephalic Presentation",NA
+"74",7362538,"BAH235046","F",21,2016-11-20,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"75",7362555,"BAH235046","F",21,2016-11-20,"16",NA,"Cephalic Presentation",NA
+"76",7372790,"BAH268212","F",22,2016-11-21,"16",NA,"Cephalic Presentation",NA
+"77",7372798,"BAH268212","F",22,2016-11-21,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"78",7374017,"BAH239972","F",30,2016-11-22,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"79",7374041,"BAH239972","F",30,2016-11-22,"16",NA,"Cephalic Presentation",NA
+"80",7385725,"BAH268335","F",22,2016-11-22,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"81",7385742,"BAH268335","F",22,2016-11-22,"16","1 st Baby Cephalic & 2nd Baby Breech","Cephalic Presentation",NA
+"82",7385762,"BAH268335","F",22,2016-11-22,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"83",7396135,"BAH268336","F",25,2016-11-23,"16",NA,"Cephalic Presentation",NA
+"84",7406863,"BAH268139","F",23,2016-11-25,"16",NA,"Cephalic Presentation",NA
+"85",7406872,"BAH268139","F",23,2016-11-25,"16","Female baby Breech",NA,"Spontaneous Vaginal Delivery"
+"86",7406933,"BAH206406","F",22,2016-11-25,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"87",7406941,"BAH206406","F",22,2016-11-25,"16",NA,"Cephalic Presentation",NA
+"88",7415317,"BAH268599","F",30,2016-11-26,"16",NA,"Cephalic Presentation",NA
+"89",7415333,"BAH268599","F",30,2016-11-26,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"90",7424012,"BAH245586","F",21,2016-11-27,"16",NA,"Cephalic Presentation",NA
+"91",7424019,"BAH245586","F",21,2016-11-27,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"92",7438690,"BAH268533","F",27,2016-11-29,"16",NA,"Cephalic Presentation",NA
+"93",7438714,"BAH268533","F",27,2016-11-29,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"94",7438843,"BAH244688","F",22,2016-11-29,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"95",7438865,"BAH244688","F",22,2016-11-29,"16",NA,"Cephalic Presentation",NA
+"96",7451057,"BAH239536","F",24,2016-11-29,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"97",7451082,"BAH239536","F",24,2016-11-29,"16",NA,"Cephalic Presentation",NA
+"98",7451425,"BAH153949","F",11,2016-11-30,"16",NA,"Cephalic Presentation",NA
+"99",7451431,"BAH153949","F",11,2016-11-30,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"100",7455471,"BAH268945","F",35,2016-11-30,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"101",7455479,"BAH268945","F",35,2016-11-30,"16",NA,"Cephalic Presentation",NA
+"102",7473093,"BAH211597","F",24,2016-11-22,"16",NA,NA,"Spontaneous Vaginal Delivery"
+"103",7473117,"BAH211597","F",24,2016-11-22,"16",NA,"Cephalic Presentation",NA
+"104",7474845,"BAH265113","F",20,2016-12-02,"16",NA,"Cephalic Presentation",NA
+"105",7474875,"BAH265113","F",20,2016-12-02,"16",NA,NA,"Spontaneous Vaginal Delivery"
