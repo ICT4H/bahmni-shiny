@@ -16,6 +16,7 @@ library(DT)
 library(shinyjs)
 library(shinyBS)
 library(purrr)
+library(lazyeval)
 options(shiny.trace=F)
 
 pool <- dbPool(
@@ -209,8 +210,8 @@ server <- function(input, output, session) {
     if(input$inTabPanel=="Bars and Charts"){
       updateCheckboxGroupInput(session, 
                                "inDimensions",
-                               choices = names(obs_data()),
-                               selected = names(obs_data())[2]
+                               choices = names(main_table$data),
+                               selected = NULL
       )
       updateSelectInput(session, 
                         "inCharts",
@@ -311,196 +312,200 @@ server <- function(input, output, session) {
                         )
   })
   observeEvent(input$inColumnNames, {
-    obs <- obs_data()
+    obs <- main_table$data
     obs <- obs[,input$inColumnNames, drop=F]
     output$obsDT <- DT::renderDataTable(obs, 
                                         options = list(paging=T), 
                                         rownames=F, 
                                         filter = "top")
   })
-  obs_data <- eventReactive(input$inApply,{
-    conDplyr <- src_pool(pool)
-    filterBy <- input$inSelect
-    listBy <- as.list(input$inCheckboxGroup)
-    dateBy <- input$inDateBy
-    dateRange <- as.character(input$inDateRange)
-    conceptDates <- as.list(input$inDateBy)
-    
-    concepts <- conDplyr %>% 
-      tbl("concept") %>% 
-      select(concept_id, class_id) %>% 
-      rename(conceptid = concept_id)
-    
-    if(filterBy ==1){#Concept class
-      obs <- conDplyr %>% 
-        tbl("obs") %>% 
-        inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
-        filter(voided==0, class_id %in% listBy) %>% 
-        select(obs_id,person_id, concept_id, obs_datetime, 
-               location_id, value_boolean, value_coded, 
-               value_drug, value_datetime, value_numeric,
-               value_text, comments, obs_group_id) %>% 
-        collect(n = Inf) 
-    }else if(filterBy==2){#Concept Name
+  main_table <- reactiveValues(data = NULL)
+  observeEvent(input$inApply,{
+      conDplyr <- src_pool(pool)
+      filterBy <- input$inSelect
+      listBy <- as.list(input$inCheckboxGroup)
+      dateBy <- input$inDateBy
+      dateRange <- as.character(input$inDateRange)
+      conceptDates <- as.list(input$inDateBy)
       
-      obs <- conDplyr %>% 
-        tbl("obs") %>% 
-        inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
-        filter(voided==0, concept_id %in% listBy) %>% 
-        select(obs_id, person_id, concept_id, obs_datetime, 
-               location_id, value_boolean, value_coded, 
-               value_drug, value_datetime, value_numeric,
-               value_text, comments, obs_group_id) %>% 
-        collect(n = Inf) 
-      answers <- as.list(input$inAnswers)
-      if(!is.null(answers)){
-        if(length(answers) > 0){
-          obs <- obs %>% filter(value_coded %in% answers)
+      concepts <- conDplyr %>% 
+        tbl("concept") %>% 
+        select(concept_id, class_id) %>% 
+        rename(conceptid = concept_id)
+      
+      if(filterBy ==1){#Concept class
+        obs <- conDplyr %>% 
+          tbl("obs") %>% 
+          inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
+          filter(voided==0, class_id %in% listBy) %>% 
+          select(obs_id,person_id, concept_id, obs_datetime, 
+                 location_id, value_boolean, value_coded, 
+                 value_drug, value_datetime, value_numeric,
+                 value_text, comments, obs_group_id) %>% 
+          collect(n = Inf) 
+      }else if(filterBy==2){#Concept Name
+        
+        obs <- conDplyr %>% 
+          tbl("obs") %>% 
+          inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
+          filter(voided==0, concept_id %in% listBy) %>% 
+          select(obs_id, person_id, concept_id, obs_datetime, 
+                 location_id, value_boolean, value_coded, 
+                 value_drug, value_datetime, value_numeric,
+                 value_text, comments, obs_group_id) %>% 
+          collect(n = Inf) 
+        answers <- as.list(input$inAnswers)
+        if(!is.null(answers)){
+          if(length(answers) > 0){
+            obs <- obs %>% filter(value_coded %in% answers)
+          }
         }
+      }else{
+        
+        obs <- conDplyr %>% 
+          tbl("obs") %>% 
+          inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
+          filter(voided==0, value_coded %in% listBy) %>% 
+          select(obs_id, person_id, concept_id, obs_datetime, 
+                 location_id, value_boolean, value_coded, 
+                 value_drug, value_datetime, value_numeric,
+                 value_text, comments, obs_group_id) %>% 
+          collect(n = Inf) 
+        
       }
-    }else{
       
-      obs <- conDplyr %>% 
-        tbl("obs") %>% 
-        inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
-        filter(voided==0, value_coded %in% listBy) %>% 
-        select(obs_id, person_id, concept_id, obs_datetime, 
+      concept_names <- conDplyr %>% 
+        tbl("concept_name") %>% 
+        select(concept_id, name, voided, concept_name_type) %>% 
+        rename(conceptid = concept_id) %>% 
+        filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
+        collect(n=Inf) 
+      
+      obs <- obs %>% 
+        inner_join(concept_names, by = c("concept_id"="conceptid")) %>% 
+        select(-voided, -concept_name_type) %>% 
+        rename(concept_name = name) %>% 
+        left_join(concept_names, by = c("value_coded"="conceptid")) %>% 
+        select(-voided, -concept_name_type, -value_coded) %>% 
+        rename(value_coded = name) %>% 
+        select(obs_id, person_id, concept_name, obs_datetime, 
                location_id, value_boolean, value_coded, 
                value_drug, value_datetime, value_numeric,
                value_text, comments, obs_group_id) %>% 
-        collect(n = Inf) 
+        mutate(location_id = as.factor(location_id),
+               value_coded = as.factor(value_coded),
+               concept_name = as.factor(concept_name),
+               obs_datetime= ymd_hms(obs_datetime),
+               value_datetime = ymd_hms(value_datetime),
+               obs_group_id = as.factor(obs_group_id))
       
-    }
-    
-    concept_names <- conDplyr %>% 
-      tbl("concept_name") %>% 
-      select(concept_id, name, voided, concept_name_type) %>% 
-      rename(conceptid = concept_id) %>% 
-      filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
-      collect(n=Inf) 
-    
-    obs <- obs %>% 
-      inner_join(concept_names, by = c("concept_id"="conceptid")) %>% 
-      select(-voided, -concept_name_type) %>% 
-      rename(concept_name = name) %>% 
-      left_join(concept_names, by = c("value_coded"="conceptid")) %>% 
-      select(-voided, -concept_name_type, -value_coded) %>% 
-      rename(value_coded = name) %>% 
-      select(obs_id, person_id, concept_name, obs_datetime, 
-             location_id, value_boolean, value_coded, 
-             value_drug, value_datetime, value_numeric,
-             value_text, comments, obs_group_id) %>% 
-      mutate(location_id = as.factor(location_id),
-             value_coded = as.factor(value_coded),
-             concept_name = as.factor(concept_name),
-             obs_datetime= ymd_hms(obs_datetime),
-             value_datetime = ymd_hms(value_datetime),
-             obs_group_id = as.factor(obs_group_id))
-    
-    if(dateBy == 1){#ObsDate
-      obs <- obs %>% 
-        filter(obs_datetime >=ymd(dateRange[1]), obs_datetime<=ymd(dateRange[2]))
-    }else{#Concept Date
-      obs_dt <- conDplyr %>% 
-        tbl("obs") %>% 
-        filter(voided==0, concept_id %in% conceptDates) %>% 
-        select(person_id, value_datetime) %>% 
-        rename(personId = person_id) %>% 
+      if(dateBy == 1){#ObsDate
+        obs <- obs %>% 
+          filter(obs_datetime >=ymd(dateRange[1]), obs_datetime<=ymd(dateRange[2]))
+      }else{#Concept Date
+        obs_dt <- conDplyr %>% 
+          tbl("obs") %>% 
+          filter(voided==0, concept_id %in% conceptDates) %>% 
+          select(person_id, value_datetime) %>% 
+          rename(personId = person_id) %>% 
+          collect(n=Inf) %>% 
+          mutate(value_datetime = ymd_hms(value_datetime)) %>% 
+          filter(value_datetime>=ymd(dateRange[1]),
+                 value_datetime<=ymd(dateRange[2])) %>% 
+          select(personId)
+        obs <- obs %>% 
+          inner_join(obs_dt, by = c("person_id"="personId")) 
+      }
+      pat_identifiers <- conDplyr %>% 
+        tbl("patient_identifier") %>% 
+        filter(voided==0,identifier_type==3) %>% 
+        select(patient_id, identifier) %>% 
+        collect(n=Inf)
+      person_demographics <- conDplyr %>% 
+        tbl("person") %>% 
+        filter(voided == 0) %>% 
+        select(person_id, gender, birthdate) %>% 
         collect(n=Inf) %>% 
-        mutate(value_datetime = ymd_hms(value_datetime)) %>% 
-        filter(value_datetime>=ymd(dateRange[1]),
-               value_datetime<=ymd(dateRange[2])) %>% 
-        select(personId)
-      obs <- obs %>% 
-        inner_join(obs_dt, by = c("person_id"="personId")) 
-    }
-    pat_identifiers <- conDplyr %>% 
-      tbl("patient_identifier") %>% 
-      filter(voided==0,identifier_type==3) %>% 
-      select(patient_id, identifier) %>% 
-      collect(n=Inf)
-    person_demographics <- conDplyr %>% 
-      tbl("person") %>% 
-      filter(voided == 0) %>% 
-      select(person_id, gender, birthdate) %>% 
-      collect(n=Inf) %>% 
-      mutate(birthdate = ymd(birthdate),
-             gender = as.factor(gender)
-      ) %>% 
-      rename(Gender = gender) %>% 
-      mutate(Age = age(from=birthdate, to=Sys.Date())
-      ) %>% 
-      select(-birthdate)
-    
-    obs <- obs %>% 
-      inner_join(person_demographics,by=c("person_id"="person_id")) %>% 
-      inner_join(pat_identifiers, by=c("person_id"="patient_id")) %>% 
-      mutate(person_id = identifier,
-             obs_datetime = ymd(paste(year(obs_datetime),"-",
-                                      month(obs_datetime),"-",
-                                      day(obs_datetime)
-             )
-             ),
-             value_datetime = ymd(paste(year(value_datetime),"-",
-                                        month(value_datetime),"-",
-                                        day(value_datetime)
-             )
-             )
-      ) %>% 
-      select(-identifier) %>% 
-      rename(Patient.Identifier = person_id,
-             Obs.Date = obs_datetime,
-             Question = concept_name,
-             ID = obs_id,
-             Location = location_id,
-             GroupID = obs_group_id)
-    
-    obs <- obs %>% 
-      gather(Key,Value, starts_with("value_")) %>% 
-      filter(!is.na(Value)) %>% 
-      select(-Key) %>% 
-      rename(Answer = Value, Comments = comments) %>% 
-      select(ID, Patient.Identifier, 
-             Gender, Age, Question, 
-             Obs.Date, Location, 
-             Answer, Comments, GroupID)
-    cat("number of obs: ")
-    cat(nrow(obs))
-    obs_dt <- NULL
-    if(nrow(obs) > 0){
-      cols_bf <- names(obs)
-
-      obs <- obs %>% spread(Question, Answer)
-      names(obs) <- make.names(names(obs))
-      cols_af <- names(obs)
-  
-      obs <- obs %>% replace(is.na(obs),"")
-      #Check if any of the newly added columns via spread are completely numeric which can be
-      #converted to as.numeric
-      df_newly_added_cols <- obs[cols_af[!(cols_af %in% cols_bf)]]
-      cols_with_no_na <- as.data.frame(df_newly_added_cols %>% map(~ as.numeric(as.character(.)))) %>% 
-        map_lgl(~sum(is.na(.)) ==0)
-      col_n <- names(cols_with_no_na)[cols_with_no_na]
-
-      obs_dt <- data.table(obs)
-  
-      obs_dt <- obs_dt[, lapply(.SD, paste0, collapse=" "),
-                       by=list(GroupID, Patient.Identifier, Gender, Age, Obs.Date,Location)]
-      obs_dt <- as.data.frame(obs_dt)
-      obs_dt[, sapply(obs_dt, is.character)] <-
-        sapply(obs_dt[, sapply(obs_dt, is.character)],
-               str_trim)
+        mutate(birthdate = ymd(birthdate),
+               gender = as.factor(gender)
+        ) %>% 
+        rename(Gender = gender) %>% 
+        mutate(Age = age(from=birthdate, to=Sys.Date())
+        ) %>% 
+        select(-birthdate)
       
-      obs_dt <- obs_dt %>% mutate_each_(funs(as.numeric(as.character(.))), col_n)
-    }
-    obs_dt
+      obs <- obs %>% 
+        inner_join(person_demographics,by=c("person_id"="person_id")) %>% 
+        inner_join(pat_identifiers, by=c("person_id"="patient_id")) %>% 
+        mutate(person_id = identifier,
+               obs_datetime = ymd(paste(year(obs_datetime),"-",
+                                        month(obs_datetime),"-",
+                                        day(obs_datetime)
+               )
+               ),
+               value_datetime = ymd(paste(year(value_datetime),"-",
+                                          month(value_datetime),"-",
+                                          day(value_datetime)
+               )
+               )
+        ) %>% 
+        select(-identifier) %>% 
+        rename(Patient.Identifier = person_id,
+               Obs.Date = obs_datetime,
+               Question = concept_name,
+               ID = obs_id,
+               Location = location_id,
+               GroupID = obs_group_id)
+      
+      obs <- obs %>% 
+        gather(Key,Value, starts_with("value_")) %>% 
+        filter(!is.na(Value)) %>% 
+        select(-Key) %>% 
+        rename(Answer = Value, Comments = comments) %>% 
+        select(ID, Patient.Identifier, 
+               Gender, Age, Question, 
+               Obs.Date, Location, 
+               Answer, Comments, GroupID)
+      cat("number of obs: ")
+      cat(nrow(obs))
+      obs_dt <- NULL
+      if(nrow(obs) > 0){
+        cols_bf <- names(obs)
+  
+        obs <- obs %>% spread(Question, Answer)
+        names(obs) <- make.names(names(obs))
+        cols_af <- names(obs)
+    
+        obs <- obs %>% replace(is.na(obs),"")
+        #Check if any of the newly added columns via spread are completely numeric which can be
+        #converted to as.numeric
+        df_newly_added_cols <- obs[cols_af[!(cols_af %in% cols_bf)]]
+        cols_with_no_na <- as.data.frame(df_newly_added_cols %>% map(~ as.numeric(as.character(.)))) %>% 
+          map_lgl(~sum(is.na(.)) ==0)
+        col_n <- names(cols_with_no_na)[cols_with_no_na]
+        cat("\nColumn Names:\n")
+        cat(names(col_n))
+  
+        obs_dt <- data.table(obs)
+    
+        obs_dt <- obs_dt[, lapply(.SD, paste0, collapse=" "),
+                         by=list(GroupID, Patient.Identifier, Gender, Age, Obs.Date,Location)]
+        obs_dt <- as.data.frame(obs_dt)
+        obs_dt[, sapply(obs_dt, is.character)] <-
+          sapply(obs_dt[, sapply(obs_dt, is.character)],
+                 str_trim)
+        
+        if(length(col_n) > 0)
+          obs_dt <- obs_dt %>% mutate_each_(funs(as.numeric(as.character(.))), col_n)
+      }
+      main_table$data <- obs_dt
   })
   
-  output$obsDT <- DT::renderDataTable(obs_data(), 
-                                      options = list(paging=T), 
-                                      rownames=F, 
-                                      filter = "top")
-  
+  output$obsDT <- DT::renderDataTable(main_table$data, 
+                                        options = list(paging=T), 
+                                        rownames=F, 
+                                        filter = "top")
+
   output$downloadData <- downloadHandler(
     filename = function() { 
       paste('observations', "_",year(ymd_hms(Sys.time())),
@@ -512,14 +517,14 @@ server <- function(input, output, session) {
             ".csv",sep='') 
     },
     content = function(file) {
-      write.csv(obs_data(), file)
+      write.csv(main_table$data, file)
     }
   )
   observeEvent(input$inApply, {
     updateCheckboxGroupInput(session, 
                              "inColumnNames",
-                             choices = names(obs_data()),
-                             selected = names(obs_data())
+                             choices = names(main_table$data),
+                             selected = names(main_table$data)
                              )
     updateCheckboxInput(session,
                         "incheckbox",
@@ -530,7 +535,7 @@ server <- function(input, output, session) {
     chartOption <- input$inCharts
     grp_cols <- input$inDimensions
     if(chartOption == 1){
-      obs <- obs_data()
+      obs <- main_table$data
       dots <- lapply(grp_cols, as.symbol)
       tableop <- ftable(obs[grp_cols])
       output$tableDF <- renderTable(as.matrix(tableop),rownames = T)
@@ -539,7 +544,7 @@ server <- function(input, output, session) {
   #Add Categorical Columns
   observeEvent(input$inCollapseAddCols,{
     if(input$inCollapseAddCols == "Add Columns"){
-      numeric_columns <- names(obs_data())[obs_data() %>% 
+      numeric_columns <- names(main_table$data)[main_table$data %>% 
                                              map_lgl(is.numeric)]
       updateSelectizeInput(session,"inNumericCols",choices = numeric_columns,selected = NULL)
     }
@@ -553,6 +558,17 @@ server <- function(input, output, session) {
     catColumns$data[[length(catColumns$data) + 1]] = newlevel
     levelnames <- catColumns$data %>% map_chr("Name")
     updateSelectizeInput(session, "inCatLevels", choices = levelnames)
+  })
+  #Mutate to add new categorical column to dataframe
+  observeEvent(input$inApplyColumn,{
+    colNameToBeGrouped <- input$inNumericCols
+    newColName <- paste(colNameToBeGrouped,"Group",sep=".")
+    mutate_call <- lazyeval::interp(~a , a = as.name(colNameToBeGrouped))
+    main_table$data <- main_table$data %>% mutate_(.dots = setNames(list(mutate_call), newColName))
+    output$obsDT <- DT::renderDataTable(main_table$data, 
+                                        options = list(paging=T), 
+                                        rownames=F, 
+                                        filter = "top")
   })
 }
 
