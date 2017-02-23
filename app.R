@@ -565,6 +565,18 @@ server <- function(input, output, session) {
     newColName <- paste(colNameToBeGrouped,"Group",sep=".")
     mutate_call <- lazyeval::interp(~a , a = as.name(colNameToBeGrouped))
     main_table$data <- main_table$data %>% mutate_(.dots = setNames(list(mutate_call), newColName))
+
+    levelnames <- catColumns$data %>% map_chr("Name")
+    ranges <- catColumns$data %>% map("Range")
+    df_list <- levelnames %>% map2(.y=ranges, function(x, y, df){
+      mutate_call_ip <- lazyeval::interp(~ifelse(a >= y[[1]] & a <=y[[2]],x[[1]],NA) , 
+                                         a = as.name(newColName))
+      df <- df %>% mutate_(.dots = setNames(list(mutate_call_ip), newColName))
+    }, df = main_table$data) %>% map(function(x){
+      filter_criteria <- lazyeval::interp(~!is.na(a), a = as.name(newColName))
+      x %>% filter_(.dots = filter_criteria)
+    })
+    main_table$data <- bind_rows(df_list)
     output$obsDT <- DT::renderDataTable(main_table$data, 
                                         options = list(paging=T), 
                                         rownames=F, 
