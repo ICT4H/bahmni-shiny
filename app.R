@@ -529,6 +529,10 @@ server <- function(input, output, session) {
     updateCheckboxInput(session,
                         "incheckbox",
                         value = T)
+    updateNumericInput(session, "inStartRange",value = "")
+    updateNumericInput(session, "inEndRange",value = "")
+    updateSelectizeInput(session, "inCatLevels", choices = c(""))
+    updateTextInput(session,"inLevelName",value ="")
   })
   #Charts and Graphs
   observeEvent(input$inShow, {
@@ -558,6 +562,9 @@ server <- function(input, output, session) {
     catColumns$data[[length(catColumns$data) + 1]] = newlevel
     levelnames <- catColumns$data %>% map_chr("Name")
     updateSelectizeInput(session, "inCatLevels", choices = levelnames)
+    updateNumericInput(session, "inStartRange",value = "")
+    updateNumericInput(session, "inEndRange",value = "")
+    updateTextInput(session,"inLevelName",value ="")
   })
   #Mutate to add new categorical column to dataframe
   observeEvent(input$inApplyColumn,{
@@ -577,10 +584,16 @@ server <- function(input, output, session) {
       x %>% filter_(.dots = filter_criteria)
     })
     main_table$data <- bind_rows(df_list)
+    
+    mutate_call <- lazyeval::interp(~as.factor(a) , a = as.name(newColName))
+    main_table$data <- main_table$data %>% mutate_(.dots = setNames(list(mutate_call), newColName))
+    
     output$obsDT <- DT::renderDataTable(main_table$data, 
                                         options = list(paging=T), 
                                         rownames=F, 
                                         filter = "top")
+    updateSelectizeInput(session, "inCatLevels", choices = c(""))
+    catColumns$data <- list()
   })
 }
 
