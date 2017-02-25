@@ -101,32 +101,35 @@ ui <- fluidPage(
                                           choices=c(""))
                      )),
                      mainPanel(
-                       bsCollapse(id = "inCollapseAddCols",
-                                  bsCollapsePanel("Add Columns", fluidRow(
-                                    column(4,
-                                           selectizeInput("inNumericCols","Numeric Columns:", choices=c(""))
-                                           ),
-                                    column(2,
-                                           numericInput("inStartRange","Start", value="")
-                                          ),
-                                    column(2,
-                                           numericInput("inEndRange","End", value="")
-                                          ),
-                                    column(2,
-                                           textInput("inLevelName","Name", value="")
-                                          ),
-                                    column(1,
-                                           actionButton("inAddLevel", label = "+", class = 'btnbottomAlign')
-                                          ) 
-                                  ),
-                                  fluidRow(
-                                    column(3,
-                                           selectizeInput("inCatLevels","Levels:", choices=c(""))
-                                          ),
-                                    column(3,
-                                           actionButton("inApplyColumn","Apply", class = 'btnbottomAlign')
-                                          )
-                                  ),style = "info")
+                       conditionalPanel(
+                         condition = "input.incheckbox==1",
+                             bsCollapse(id = "inCollapseAddCols",
+                                        bsCollapsePanel("Add Columns", fluidRow(
+                                          column(4,
+                                                 selectizeInput("inNumericCols","Numeric Columns:", choices=c(""))
+                                                 ),
+                                          column(2,
+                                                 numericInput("inStartRange","Start", value="")
+                                                ),
+                                          column(2,
+                                                 numericInput("inEndRange","End", value="")
+                                                ),
+                                          column(2,
+                                                 textInput("inLevelName","Name", value="")
+                                                ),
+                                          column(1,
+                                                 actionButton("inAddLevel", label = "+", class = 'btnbottomAlign')
+                                                ) 
+                                        ),
+                                        fluidRow(
+                                          column(3,
+                                                 selectizeInput("inCatLevels","Levels:", choices=c(""))
+                                                ),
+                                          column(3,
+                                                 actionButton("inApplyColumn","Apply", class = 'btnbottomAlign')
+                                                )
+                                        ),style = "info")
+                             )
                        ),
                        DT::dataTableOutput("obsDT")
                        ,
@@ -468,7 +471,7 @@ server <- function(input, output, session) {
                Answer, Comments, GroupID)
       cat("number of obs: ")
       cat(nrow(obs))
-      obs_dt <- NULL
+      obs_dt <- data.frame()
       if(nrow(obs) > 0){
         cols_bf <- names(obs)
   
@@ -499,12 +502,11 @@ server <- function(input, output, session) {
           obs_dt <- obs_dt %>% mutate_each_(funs(as.numeric(as.character(.))), col_n)
       }
       main_table$data <- obs_dt
+      output$obsDT <- DT::renderDataTable(main_table$data, 
+                                          options = list(paging=T), 
+                                          rownames=F, 
+                                          filter = "top")
   })
-  
-  output$obsDT <- DT::renderDataTable(main_table$data, 
-                                        options = list(paging=T), 
-                                        rownames=F, 
-                                        filter = "top")
 
   output$downloadData <- downloadHandler(
     filename = function() { 
@@ -526,9 +528,16 @@ server <- function(input, output, session) {
                              choices = names(main_table$data),
                              selected = names(main_table$data)
                              )
-    updateCheckboxInput(session,
-                        "incheckbox",
-                        value = T)
+    if(length(names(main_table$data)) > 0){
+      updateCheckboxInput(session,
+                          "incheckbox",
+                          value = T)
+    }
+    else{
+      updateCheckboxInput(session,
+                          "incheckbox",
+                          value = F)
+    }
     updateNumericInput(session, "inStartRange",value = "")
     updateNumericInput(session, "inEndRange",value = "")
     updateSelectizeInput(session, "inCatLevels", choices = c(""))
