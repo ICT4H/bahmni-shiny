@@ -155,8 +155,8 @@ ui <- fluidPage(
                    ),
                    # Show a plot of the generated distribution
                    mainPanel(
-                     tableOutput("tableDF")
-                     
+                     tableOutput("tableDF"),
+                     uiOutput("tableDownload")
                    )
                  )
         )
@@ -559,9 +559,31 @@ server <- function(input, output, session) {
       obs <- main_table$data
       dots <- lapply(grp_cols, as.symbol)
       tableop <- ftable(obs[grp_cols])
+      table_data$data <- tableop
       output$tableDF <- renderTable(as.matrix(tableop),rownames = T)
+      output$tableDownload <- renderUI({
+        tagList(
+          downloadButton('downloadTable', 'Download')
+        )
+      })
     }
   })
+  table_data <- reactiveValues(data = NULL)
+  #Download Table
+  output$downloadTable <- downloadHandler(
+    filename = function() { 
+      paste('table', "_",year(ymd_hms(Sys.time())),
+            "_",month(ymd_hms(Sys.time())),
+            "_",day(ymd_hms(Sys.time())),
+            "_",hour(ymd_hms(Sys.time())),
+            "_",minute(ymd_hms(Sys.time())),
+            "_",second(ymd_hms(Sys.time())),
+            ".csv",sep='') 
+    },
+    content = function(file) {
+      write.ftable(table_data$data, file, method = "compact", lsep= "/", quote = F)
+    }
+  )
   #Add Categorical Columns
   observeEvent(input$inCollapseAddCols,{
     if(input$inCollapseAddCols == "Add Columns"){
