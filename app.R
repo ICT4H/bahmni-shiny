@@ -150,7 +150,7 @@ ui <- fluidPage(
                      checkboxGroupInput('inDimensions', 'Columns:',
                                         choices=c("")),
                      selectInput('inCharts', 'Charts:',
-                                        choices=c("Table", "Bar Chart", "Histogram"), multiple = F),
+                                        choices=c("Table", "Bar Chart", "Histogram", "Scatter Plot"), multiple = F),
                      actionButton("inShow","Show")
                    ),
                    # Show a plot of the generated distribution
@@ -163,6 +163,14 @@ ui <- fluidPage(
                        condition = "input$inCharts=='Histogram'",
                        plotOutput("histPlot")
                      ),
+                     conditionalPanel(
+                       condition = "input$inCharts=='Bar Chart'",
+                       plotOutput("barPlot")
+                     ),
+                     conditionalPanel(
+                       "input$inCharts=='Scatter Plot'",
+                       plotOutput("scatterPlot")
+                    ),
                      uiOutput("tableDownload")
                    )
                  )
@@ -573,10 +581,21 @@ server <- function(input, output, session) {
           downloadButton('downloadTable', 'Download')
         )
       })
+    }else if(chartOption == 2){ #barchart
+      output$barPlot <- renderPlot({
+        bar_1 <- obs %>% ggplot(aes_string(grp_cols[1]))
+        bar_1 <- bar_1 +  geom_bar()
+        bar_1 + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+      })
     }else if(chartOption == 3){ #histogram
       output$histPlot <- renderPlot({
         hist_1 <- obs %>% ggplot(aes_string(grp_cols[1]))
         hist_1 +  geom_histogram()
+      })
+    }else if(chartOption == 4){ #scatter plot
+      output$scatterPlot <- renderPlot({
+        scatter_plot <- obs %>% ggplot(aes_string(x = grp_cols[1], y = grp_cols[2], col = "Gender"))
+        scatter_plot + geom_point()
       })
     }
   })
