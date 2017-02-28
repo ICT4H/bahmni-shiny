@@ -558,7 +558,7 @@ server <- function(input, output, session) {
     if(chartOption == 1){
       obs <- main_table$data
       dots <- lapply(grp_cols, as.symbol)
-      tableop <- ftable(obs[grp_cols])
+      tableop <- ftable(droplevels(obs[grp_cols]))
       table_data$data <- tableop
       output$tableDF <- renderTable(as.matrix(tableop),rownames = T)
       output$tableDownload <- renderUI({
