@@ -155,7 +155,14 @@ ui <- fluidPage(
                    ),
                    # Show a plot of the generated distribution
                    mainPanel(
-                     tableOutput("tableDF"),
+                     conditionalPanel(
+                       condition = "input$inCharts=='Table'",
+                       tableOutput("tableDF")
+                     ),
+                     conditionalPanel(
+                       condition = "input$inCharts=='Histogram'",
+                       plotOutput("histPlot")
+                     ),
                      uiOutput("tableDownload")
                    )
                  )
@@ -555,9 +562,9 @@ server <- function(input, output, session) {
   observeEvent(input$inShow, {
     chartOption <- input$inCharts
     grp_cols <- input$inDimensions
+    obs <- main_table$data
+    dots <- lapply(grp_cols, as.symbol)
     if(chartOption == 1){
-      obs <- main_table$data
-      dots <- lapply(grp_cols, as.symbol)
       tableop <- ftable(droplevels(obs[grp_cols]))
       table_data$data <- tableop
       output$tableDF <- renderTable(as.matrix(tableop),rownames = T)
@@ -565,6 +572,11 @@ server <- function(input, output, session) {
         tagList(
           downloadButton('downloadTable', 'Download')
         )
+      })
+    }else if(chartOption == 3){ #histogram
+      output$histPlot <- renderPlot({
+        hist_1 <- obs %>% ggplot(aes_string(grp_cols[1]))
+        hist_1 +  geom_histogram()
       })
     }
   })
