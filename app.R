@@ -489,11 +489,19 @@ server <- function(input, output, session) {
         cat("\nColumn Names:\n")
         cat(names(col_n))
   
-        obs_dt <- data.table(obs)
+        obs_dt <- obs
     
-        obs_dt <- obs_dt[, lapply(.SD, paste0, collapse=" "),
-                         by=list(GroupID, Patient.Identifier, Gender, Age, Obs.Date,Location)]
-        obs_dt <- as.data.frame(obs_dt)
+        initial_group <- c("GroupID", "Patient.Identifier", "Gender", "Age", "Obs.Date","Location")
+        dots <- sapply(initial_group, . %>% {as.formula(paste0('~', .))})
+        if(length(listBy) == 1){
+          add_dots <- sapply(cols_af[!(cols_af %in% cols_bf)], . %>% {as.formula(paste0('~', .))})
+          group_list <- append(dots, add_dots)
+        } else{
+          group_list <- dots
+        }
+   
+        obs_dt <- obs_dt %>% group_by_(.dots = group_list) %>% summarise_all(funs(paste0(., collapse=" ")))
+        
         obs_dt[, sapply(obs_dt, is.character)] <-
           sapply(obs_dt[, sapply(obs_dt, is.character)],
                  str_trim)
