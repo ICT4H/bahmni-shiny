@@ -155,22 +155,34 @@ ui <- fluidPage(
                    ),
                    # Show a plot of the generated distribution
                    mainPanel(
-                     conditionalPanel(
-                       condition = "input$inCharts=='Table'",
-                       tableOutput("tableDF")
+                     navbarPage("", id = "inChartMenu",
+                                navbarMenu("Output",
+                                           tabPanel("Table",
+                                                    tableOutput("tableDF")
+                                           ),
+                                           tabPanel("Bar Chart",
+                                                    fluidRow(
+                                                      column(12,
+                                                             plotOutput("barPlot")
+                                                      )
+                                                    )
+                                           ),
+                                           tabPanel("Histogram",
+                                                    fluidRow(
+                                                      column(12,
+                                                             plotOutput("histPlot")
+                                                      )
+                                                    )
+                                           ),
+                                           tabPanel("Scatter Plot",
+                                                    fluidRow(
+                                                      column(12,
+                                                             plotOutput("scatterPlot")
+                                                      )
+                                                    )
+                                           )
+                                )
                      ),
-                     conditionalPanel(
-                       condition = "input$inCharts=='Histogram'",
-                       plotOutput("histPlot")
-                     ),
-                     conditionalPanel(
-                       condition = "input$inCharts=='Bar Chart'",
-                       plotOutput("barPlot")
-                     ),
-                     conditionalPanel(
-                       "input$inCharts=='Scatter Plot'",
-                       plotOutput("scatterPlot")
-                    ),
                      uiOutput("tableDownload")
                    )
                  )
@@ -182,7 +194,8 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
-  
+  main_table <- reactiveValues(data = NULL)
+  main_plot <- reactiveValues(data = NULL)
   selectChoices <- reactiveValues(data = list("Class" = 1, "Question" = 2, "Answer" = 3))
   conceptDates <- eventReactive(input$inTabPanel,{
     if(input$inTabPanel=="Observations"){
@@ -337,7 +350,6 @@ server <- function(input, output, session) {
                                         rownames=F, 
                                         filter = "top")
   })
-  main_table <- reactiveValues(data = NULL)
   observeEvent(input$inApply,{
       conDplyr <- src_pool(pool)
       filterBy <- input$inSelect
@@ -576,43 +588,59 @@ server <- function(input, output, session) {
       tableop <- ftable(droplevels(obs[grp_cols]))
       table_data$data <- tableop
       output$tableDF <- renderTable(as.matrix(tableop),rownames = T)
-      output$tableDownload <- renderUI({
-        tagList(
-          downloadButton('downloadTable', 'Download')
-        )
-      })
+      selectedValue <- "Table" 
     }else if(chartOption == 2){ #barchart
       output$barPlot <- renderPlot({
         bar_1 <- obs %>% ggplot(aes_string(grp_cols[1]))
         bar_1 <- bar_1 +  geom_bar()
-        bar_1 + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+        main_plot$data <- bar_1 + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+        main_plot$data
       })
+      selectedValue <- "Bar Chart" 
     }else if(chartOption == 3){ #histogram
       output$histPlot <- renderPlot({
         hist_1 <- obs %>% ggplot(aes_string(grp_cols[1]))
-        hist_1 +  geom_histogram()
+        main_plot$data <- hist_1 +  geom_histogram()
+        main_plot$data
       })
+      selectedValue <- "Histogram" 
     }else if(chartOption == 4){ #scatter plot
       output$scatterPlot <- renderPlot({
         scatter_plot <- obs %>% ggplot(aes_string(x = grp_cols[1], y = grp_cols[2], col = "Gender"))
-        scatter_plot + geom_point()
+        main_plot$data <- scatter_plot + geom_point()
+        main_plot$data
       })
+      selectedValue <- "Scatter Plot" 
     }
+    updateNavbarPage(session,"inChartMenu", selected = selectedValue )
+    output$tableDownload <- renderUI({
+      tagList(
+        downloadButton('downloadTable', 'Download')
+      )
+    })
   })
   table_data <- reactiveValues(data = NULL)
   #Download Table
   output$downloadTable <- downloadHandler(
     filename = function() { 
-      paste('table', "_",year(ymd_hms(Sys.time())),
+      chartOption <- input$inCharts
+      fextn <- ifelse(chartOption ==1, ".csv",".png")
+      fprefix <- ifelse(chartOption ==1, "table","plot")
+      paste(fprefix, "_",year(ymd_hms(Sys.time())),
             "_",month(ymd_hms(Sys.time())),
             "_",day(ymd_hms(Sys.time())),
             "_",hour(ymd_hms(Sys.time())),
             "_",minute(ymd_hms(Sys.time())),
             "_",second(ymd_hms(Sys.time())),
-            ".csv",sep='') 
+            fextn, sep='') 
     },
     content = function(file) {
-      write.ftable(table_data$data, file, method = "compact", lsep= "/", quote = F)
+      chartOption <- input$inCharts
+      if(chartOption == 1){
+        write.ftable(table_data$data, file, method = "compact", lsep= "/", quote = F)
+      }else{
+        ggsave(file, plot = main_plot$data, device = "png" )
+      }
     }
   )
   #Add Categorical Columns
