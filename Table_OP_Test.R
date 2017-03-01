@@ -41,6 +41,7 @@ tmp_0 <- table(df1[c("Delivery Note, Method of Delivery","Delivery Note, Fetal P
 
 tmp1 <- ftable(df1[c("Delivery Note, Method of Delivery","Delivery Note, Fetal Presentation")], 
                deparse.level = 1, exclude = c(0))
+tmp2 <- ftable(df1[c("Delivery Note, Method of Delivery","Delivery Note, Fetal Presentation", "Gender")])
 
 ftable(df1[c("Delivery Note, Fetal Presentation")])
 

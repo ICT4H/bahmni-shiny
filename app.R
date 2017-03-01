@@ -17,6 +17,7 @@ library(shinyjs)
 library(shinyBS)
 library(purrr)
 library(lazyeval)
+library(DescTools)
 options(shiny.trace=F)
 
 pool <- dbPool(
@@ -196,6 +197,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   main_table <- reactiveValues(data = NULL)
   main_plot <- reactiveValues(data = NULL)
+  table_data <- reactiveValues(data = NULL)
   selectChoices <- reactiveValues(data = list("Class" = 1, "Question" = 2, "Answer" = 3))
   conceptDates <- eventReactive(input$inTabPanel,{
     if(input$inTabPanel=="Observations"){
@@ -619,7 +621,7 @@ server <- function(input, output, session) {
       )
     })
   })
-  table_data <- reactiveValues(data = NULL)
+
   #Download Table
   output$downloadTable <- downloadHandler(
     filename = function() { 
@@ -637,7 +639,8 @@ server <- function(input, output, session) {
     content = function(file) {
       chartOption <- input$inCharts
       if(chartOption == 1){
-        write.ftable(table_data$data, file, method = "compact", lsep= "/", quote = F)
+        op_df <- stats:::format.ftable(table_data$data, quote=FALSE)
+        write.csv(op_df, file)
       }else{
         ggsave(file, plot = main_plot$data, device = "png" )
       }
