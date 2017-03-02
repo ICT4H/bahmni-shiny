@@ -136,4 +136,42 @@ print(tab)
 #   tableop <- table(df[names(df)[2]])
 #   tableop.df <- as.data.frame(tableop)
 # }
+output <- 
+  matrix(paste("Content", LETTERS[1:16]), 
+         ncol=4, byrow = TRUE)
 
+library(htmlTable)
+htmlTable(output,
+          header =  paste(c("1st", "2nd",
+                            "3rd", "4th"), "header"),
+          rnames = paste(c("1st", "2nd",
+                           "3rd", "4th"), "row"),
+          rgroup = c("Group A",
+                     "Group B"),
+          n.rgroup = c(2,2),
+          cgroup = c("Cgroup 1", "Cgroup 2&dagger;"),
+          n.cgroup = c(2,2), 
+          caption="Basic table with both column spanners (groups) and row groups",
+          tfoot="&dagger; A table footer commment")
+
+
+
+library(ztable)
+options(ztable.type="html")
+zt <- ztable(output, 
+             caption = "Average age in Sweden counties.",
+             zebra.type = 1,
+             zebra = "peach",
+             align=paste(rep("r", ncol(output) + 1), collapse = ""))
+# zt <- addcgroup(zt,
+#                 cgroup = cgroup,
+#                 n.cgroup = n.cgroup)
+# Causes an error:
+# Error in if (result <= length(vlines)) { : 
+zt <- addrgroup(zt, 
+                rgroup = c("1st&nbsp;period", 
+                           "2nd&nbsp;period",
+                           "3rd&nbsp;period"),
+                n.rgroup = rep(5, 3))
+
+print(zt)
