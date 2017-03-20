@@ -171,6 +171,11 @@ ui <- fluidPage(
                                            tabPanel("Histogram",
                                                     fluidRow(
                                                       column(12,
+                                                             sliderInput("inHistInput", "Choose a bin width:", 1, 100, 10)
+                                                      )
+                                                    ),
+                                                    fluidRow(
+                                                      column(12,
                                                              plotOutput("histPlot")
                                                       )
                                                     )
@@ -178,7 +183,12 @@ ui <- fluidPage(
                                            tabPanel("Scatter Plot",
                                                     fluidRow(
                                                       column(12,
-                                                             plotOutput("scatterPlot")
+                                                             plotOutput("scatterPlot",
+                                                                        dblclick = "scatter_dblclick",
+                                                                        brush = brushOpts(
+                                                                          id = "scatter_brush",
+                                                                          resetOnNew = TRUE
+                                                                        ))
                                                       )
                                                     )
                                            )
@@ -187,7 +197,8 @@ ui <- fluidPage(
                      uiOutput("tableDownload")
                    )
                  )
-        )
+        ),
+        tabPanel('Dashboard')
       )
     )
   )
@@ -580,6 +591,21 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, "inCatLevels", choices = c(""))
     updateTextInput(session,"inLevelName",value ="")
   })
+  #scatter plot ranges
+  scatter_ranges <- reactiveValues(x = NULL, y = NULL)
+  # When a double-click happens, check if there's a brush on the plot.
+  # If so, zoom to the brush bounds; if not, reset the zoom.
+  observeEvent(input$scatter_dblclick, {
+    brush <- input$scatter_brush
+    if (!is.null(brush)) {
+      scatter_ranges$x <- c(brush$xmin, brush$xmax)
+      scatter_ranges$y <- c(brush$ymin, brush$ymax)
+      
+    } else {
+      scatter_ranges$x <- NULL
+      scatter_ranges$y <- NULL
+    }
+  })
   #Charts and Graphs
   observeEvent(input$inShow, {
     chartOption <- input$inCharts
@@ -602,14 +628,15 @@ server <- function(input, output, session) {
     }else if(chartOption == 3){ #histogram
       output$histPlot <- renderPlot({
         hist_1 <- obs %>% ggplot(aes_string(grp_cols[1]))
-        main_plot$data <- hist_1 +  geom_histogram()
+        main_plot$data <- hist_1 +  geom_histogram(binwidth = input$inHistInput)
         main_plot$data
       })
       selectedValue <- "Histogram" 
     }else if(chartOption == 4){ #scatter plot
       output$scatterPlot <- renderPlot({
         scatter_plot <- obs %>% ggplot(aes_string(x = grp_cols[1], y = grp_cols[2], col = "Gender"))
-        main_plot$data <- scatter_plot + geom_point()
+        scatter_plot <- scatter_plot + geom_point()
+        main_plot$data <- scatter_plot + coord_cartesian(xlim = scatter_ranges$x, ylim = scatter_ranges$y)
         main_plot$data
       })
       selectedValue <- "Scatter Plot" 
@@ -617,7 +644,8 @@ server <- function(input, output, session) {
     updateNavbarPage(session,"inChartMenu", selected = selectedValue )
     output$tableDownload <- renderUI({
       tagList(
-        downloadButton('downloadTable', 'Download')
+        downloadButton('downloadTable', 'Download'),
+        actionButton("inAddtoDB","Add to Dashboard")
       )
     })
   })

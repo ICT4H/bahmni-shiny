@@ -24,21 +24,21 @@ server <- function(input, output, session) {
   })
   
   output$summary <- renderPrint({
-    #summary(mtcars)
-    op <- matrix(paste("Content", LETTERS[1:16]), 
-             ncol=4, byrow = TRUE)
-    htmlTable(op,
-              header =  paste(c("1st", "2nd",
-                                "3rd", "4th"), "header"),
-              rnames = paste(c("1st", "2nd",
-                               "3rd", "4th"), "row"),
-              rgroup = c("Group A",
-                         "Group B"),
-              n.rgroup = c(2,2),
-              cgroup = c("Cgroup 1", "Cgroup 2&dagger;"),
-              n.cgroup = c(2,2), 
-              caption="Basic table with both column spanners (groups) and row groups",
-              tfoot="&dagger; A table footer commment")
+    # obs_tod_pres <- read_csv("observations_fp_md.csv")
+    # obs_tod_pres <- obs_tod_pres %>% mutate(Gender = as.factor(ifelse(Gender==F,"F","M")))
+    # tableop <- ftable(obs_tod_pres[c("Gender","Delivery.Note..Method.of.Delivery","Delivery.Note..Fetal.Presentation")])
+    # 
+    # 
+    # htmlTable(tableop, rnames = rep(unlist(attr(tableop, "row.vars")[2]), 3), 
+    #           rgroup=unlist(attr(tableop, "row.vars")[1]), n.rgroup = c(1,1),
+    #           cgroup = unlist(attr(tableop, "col.vars")[[1]]),n.cgroup = c(1,1), caption =  names(attr(tableop, "col.vars")) )
+    fasting_sugar <- read_csv("obs_fast_sugar_1.csv")
+    fasting_sugar <- fasting_sugar %>% mutate(Gender = as.factor(Gender))
+    fast_table <- ftable(Gender  ~ Blood.Sugar.Fasting.Group + Age.Group, data = fasting_sugar)
+    htmlTable(fast_table, rnames = unlist(attr(fast_table, "row.vars")[1]), 
+              header = rep(unlist(attr(fast_table, "col.vars")[[1]]), 2), 
+              cgroup = unlist(attr(fast_table, "col.vars")[[2]]), 
+              n.cgroup = c(2,2),caption =  "BloodSugarTable" )
     
   })
 

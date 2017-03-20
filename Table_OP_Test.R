@@ -11,39 +11,41 @@ df_tmp_1 <- as.data.frame(df_tmp %>% map(~ as.numeric(as.character(.)))) %>%
   map_lgl(~sum(is.na(.)) ==0)
 col_n <- names(df_tmp_1)[df_tmp_1]
 df_tmp_2 <- df_tmp %>% mutate_each_(funs(as.numeric(as.character(.))), col_n)
-
-obs_tod_pres <- read_csv("obs_tod_presentation.csv")
-
 numeric_cols <- obs_tod_pres %>% map_lgl(is.numeric)
 names(obs_tod_pres)[obs_tod_pres %>% map_lgl(is.numeric)]
-
-obs_tod_pres_1 <- obs_tod_pres %>% rename(PatID = `Patient Identifier`,ObsDate = `Obs Date`) 
-obs_tod_pres_2 <- as.data.frame(obs_tod_pres_1 %>% map(function(x){
-  ifelse(is.na(x),"",x)
-}))
 # %>% 
 #   group_by(PatID,Gender,Age,ObsDate,Location) %>% 
 #   summarise_each(funs(if(is.numeric(.)) mean(., na.rm = TRUE) else first(.)))
-obs_tod_pres_1<-obs_tod_pres_1 %>% replace(is.na(obs_tod_pres_1),"")
-df <- data.table(obs_tod_pres_1)
+obs_tod_pres_2 <- as.data.frame(obs_tod_pres_1 %>% map(function(x){
+  ifelse(is.na(x),"",x)
+}))
 
-df1 <- df[, lapply(.SD, paste0, collapse=" "), by=list(PatID,Gender,Age,ObsDate,Location)]
-df1 <- as.data.frame(df1)
-df1[, sapply(df1, is.character)] <-
-  sapply(df1[, sapply(df1, is.character)],
-         str_trim)
-grp_cols <- c("Delivery Note, Method of Delivery","Delivery Note, Fetal Presentation")
-dots <- lapply(grp_cols, as.symbol)
-tmp_0 <- table(df1[c("Delivery Note, Method of Delivery","Delivery Note, Fetal Presentation")])
+obs_tod_pres <- read_csv("observations_fp_md.csv")
+obs_tod_pres <- obs_tod_pres %>% mutate(Gender = as.factor(ifelse(Gender==F,"F","M")))
+tableop <- ftable(obs_tod_pres[c("Gender","Delivery.Note..Method.of.Delivery","Delivery.Note..Fetal.Presentation")])
 
-
-
-
-tmp1 <- ftable(df1[c("Delivery Note, Method of Delivery","Delivery Note, Fetal Presentation")], 
-               deparse.level = 1, exclude = c(0))
-tmp2 <- ftable(df1[c("Delivery Note, Method of Delivery","Delivery Note, Fetal Presentation", "Gender")])
-
-ftable(df1[c("Delivery Note, Fetal Presentation")])
+# obs_tod_pres_1 <- obs_tod_pres %>% rename(PatID = `Patient Identifier`,ObsDate = `Obs Date`) 
+# 
+# obs_tod_pres_1<-obs_tod_pres_1 %>% replace(is.na(obs_tod_pres_1),"")
+# df <- data.table(obs_tod_pres_1)
+# 
+# df1 <- df[, lapply(.SD, paste0, collapse=" "), by=list(PatID,Gender,Age,ObsDate,Location)]
+# df1 <- as.data.frame(df1)
+# df1[, sapply(df1, is.character)] <-
+#   sapply(df1[, sapply(df1, is.character)],
+#          str_trim)
+# grp_cols <- c("Delivery Note, Method of Delivery","Delivery Note, Fetal Presentation")
+# dots <- lapply(grp_cols, as.symbol)
+# tmp_0 <- table(df1[c("Delivery Note, Method of Delivery","Delivery Note, Fetal Presentation")])
+# 
+# 
+# 
+# 
+# tmp1 <- ftable(df1[c("Delivery Note, Method of Delivery","Delivery Note, Fetal Presentation")], 
+#                deparse.level = 1, exclude = c(0))
+# tmp2 <- ftable(df1[c("Delivery Note, Method of Delivery","Delivery Note, Fetal Presentation", "Gender")])
+# 
+# ftable(df1[c("Delivery Note, Fetal Presentation")])
 
 
 df_tmp <- read_csv("df_tmp.csv")
@@ -175,3 +177,17 @@ zt <- addrgroup(zt,
                 n.rgroup = rep(5, 3))
 
 print(zt)
+
+
+fasting_sugar <- read_csv("obs_fast_sugar_1.csv")
+fasting_sugar <- fasting_sugar %>% mutate(Gender = as.factor(Gender))
+fast_table <- ftable(Gender + Age.Group ~  Obs.Date + Blood.Sugar.Fasting.Group, data = fasting_sugar)
+  #ftable(fasting_sugar[c("Gender","Obs.Date","Age.Group","Blood.Sugar.Fasting.Group")])
+fast_table
+
+fasting_sugar_1 <- fasting_sugar %>% mutate(Gender = replace(Gender, which(Gender == "F" & Age.Group == "Elders"), "M"))
+fast_table_1 <- ftable(Gender + Age.Group ~  Obs.Date + Blood.Sugar.Fasting.Group, data = fasting_sugar_1)
+
+htmlTable(tableop, rnames = rep(unlist(attr(tableop, "row.vars")[2]), 3), 
+          rgroup=unlist(attr(tableop, "row.vars")[1]), n.rgroup = c(1,1),
+          cgroup = unlist(attr(tableop, "col.vars")[[1]]),n.cgroup = c(1,1), caption =  names(attr(tableop, "col.vars")) )
