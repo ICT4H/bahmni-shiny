@@ -382,7 +382,7 @@ server <- function(input, output, session) {
           inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
           filter(voided==0, class_id %in% listBy) %>% 
           select(obs_id,person_id, concept_id, obs_datetime, 
-                 location_id, value_boolean, value_coded, 
+                 location_id, value_coded, 
                  value_drug, value_datetime, value_numeric,
                  value_text, comments, obs_group_id) %>% 
           collect(n = Inf) 
@@ -393,7 +393,7 @@ server <- function(input, output, session) {
           inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
           filter(voided==0, concept_id %in% listBy) %>% 
           select(obs_id, person_id, concept_id, obs_datetime, 
-                 location_id, value_boolean, value_coded, 
+                 location_id, value_coded, 
                  value_drug, value_datetime, value_numeric,
                  value_text, comments, obs_group_id) %>% 
           collect(n = Inf) 
@@ -410,7 +410,7 @@ server <- function(input, output, session) {
           inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
           filter(voided==0, value_coded %in% listBy) %>% 
           select(obs_id, person_id, concept_id, obs_datetime, 
-                 location_id, value_boolean, value_coded, 
+                 location_id, value_coded, 
                  value_drug, value_datetime, value_numeric,
                  value_text, comments, obs_group_id) %>% 
           collect(n = Inf) 
@@ -432,7 +432,7 @@ server <- function(input, output, session) {
         select(-voided, -concept_name_type, -value_coded) %>% 
         rename(value_coded = name) %>% 
         select(obs_id, person_id, concept_name, obs_datetime, 
-               location_id, value_boolean, value_coded, 
+               location_id, value_coded, 
                value_drug, value_datetime, value_numeric,
                value_text, comments, obs_group_id) %>% 
         mutate(location_id = as.factor(location_id),
