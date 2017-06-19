@@ -1,4 +1,3 @@
-library("dplyr")
 library("tidyr")
 library("stringr")
 library("lubridate")
@@ -10,6 +9,7 @@ library("eeptools")
 library(data.table)
 library(DBI)
 library(pool)
+library("dplyr")
 library(shiny)
 library(ggplot2)
 library(DT)
@@ -19,6 +19,13 @@ library(purrr)
 library(lazyeval)
 library(DescTools)
 options(shiny.trace=F)
+
+my_db <- src_mysql(
+  dbname = "openmrs",
+  host = "localhost",
+  user = "root",
+  password = ""
+)
 
 pool <- dbPool(
   drv = RMySQL::MySQL(),
@@ -213,7 +220,8 @@ server <- function(input, output, session) {
   conceptDates <- eventReactive(input$inTabPanel,{
     if(input$inTabPanel=="Observations"){
       dbOutput <- list("Obs Date"=1)
-      SRC_POOL <- src_pool(pool)
+      #SRC_POOL <- src_pool(pool)
+      SRC_POOL <- my_db
       concept_data_type <- SRC_POOL %>%
          tbl("concept_datatype") %>%
          select(concept_datatype_id,name, retired) %>%
@@ -279,7 +287,8 @@ server <- function(input, output, session) {
   })
  
   questions_answers <- eventReactive(input$inSelect, {
-    conDplyr <- src_pool(pool)
+    #conDplyr <- src_pool(pool)
+    conDplyr <- my_db
     filterBy <- input$inSelect
     dbOutput <- list()
     concept_names <- NULL
@@ -322,7 +331,8 @@ server <- function(input, output, session) {
     filterBy <- input$inSelect
     concepts <- input$inCheckboxGroup
     if(filterBy==2 && !is.null(concepts)){
-      conDplyr <- src_pool(pool)
+      #conDplyr <- src_pool(pool)
+      conDplyr <- my_db
       concept_answers <- conDplyr %>% 
         tbl("concept_answer") %>% 
         select(answer_concept, concept_id) %>% 
@@ -364,7 +374,8 @@ server <- function(input, output, session) {
                                         filter = "top")
   })
   observeEvent(input$inApply,{
-      conDplyr <- src_pool(pool)
+      #conDplyr <- src_pool(pool)
+      conDplyr <- my_db
       filterBy <- input$inSelect
       listBy <- as.list(input$inCheckboxGroup)
       dateBy <- input$inDateBy
