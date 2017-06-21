@@ -1,28 +1,52 @@
-library("tidyr")
-library("stringr")
-library("lubridate")
-library("RMySQL")
-library("readr")
-library("ggplot2")
-library("scales")
-library("eeptools")
-library(data.table)
+if (!"install.load" %in% rownames(installed.packages()))
+  install.packages("install.load")
+library(install.load)
+if (!"devtools" %in% rownames(installed.packages()))
+  install.packages("devtools")
+library(devtools)
+#install the required packages
+pkgs_to_install_load <- c("tidyr", "stringr", "readr","lubridate", "RMySQL","readr",
+                          "ggplot2", "scales", "eeptools", "data.table",
+                          "dplyr","DT","shinyjs","shinyBS","purrr",
+                          "lazyeval","DescTools")
+sapply(pkgs_to_install_load,install_load)
+
+if (!"DBI" %in% rownames(installed.packages())) 
+  devtools::install_github("rstats-db/DBI")
+if (!"pool" %in% rownames(installed.packages())) 
+  devtools::install_github("rstudio/pool")
+if (!"shiny" %in% rownames(installed.packages())) 
+  devtools::install_github("rstudio/shiny")
+
 library(DBI)
 library(pool)
-library("dplyr")
 library(shiny)
-library(ggplot2)
-library(DT)
-library(shinyjs)
-library(shinyBS)
-library(purrr)
-library(lazyeval)
-library(DescTools)
+
+# library("tidyr")
+# library("stringr")
+# library("lubridate")
+# library("RMySQL")
+# library("readr")
+# library("ggplot2")
+# library("scales")
+# library("eeptools")
+# library(data.table)
+# library(DBI)
+# library(pool)
+# library("dplyr")
+# library(shiny)
+# library(ggplot2)
+# library(DT)
+# library(shinyjs)
+# library(shinyBS)
+# library(purrr)
+# library(lazyeval)
+# library(DescTools)
 options(shiny.trace=F)
 
 my_db <- src_mysql(
   dbname = "openmrs",
-  host = "localhost",
+  host =  "localhost",
   user = "root",
   password = ""
 )
