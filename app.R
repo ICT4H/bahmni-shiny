@@ -1,9 +1,28 @@
+#To be executed only once for first time when this app is run on a particular machine
+#to ensure correct packages are installed
+# pkgs_to_remove <- c("install.load", "devtools", "DBI", "pool", "shiny",
+#                     "tidyr", "stringr", "readr","lubridate", "RMySQL","readr",
+#                           "ggplot2", "scales", "eeptools", "data.table",
+#                           "dplyr","DT","shinyjs","shinyBS","purrr",
+#                           "lazyeval","DescTools")
+# 
+# remove.packages(pkgs_to_remove)
+
 if (!"install.load" %in% rownames(installed.packages()))
   install.packages("install.load")
 library(install.load)
 if (!"devtools" %in% rownames(installed.packages()))
   install.packages("devtools")
 library(devtools)
+if (!"DBI" %in% rownames(installed.packages())) 
+  devtools::install_github("rstats-db/DBI")
+if (!"pool" %in% rownames(installed.packages())) 
+  devtools::install_github("rstudio/pool")
+if (!"shiny" %in% rownames(installed.packages())) 
+  devtools::install_github("rstudio/shiny")
+library(DBI)
+library(pool)
+library(shiny)
 #install the required packages
 pkgs_to_install_load <- c("tidyr", "stringr", "readr","lubridate", "RMySQL","readr",
                           "ggplot2", "scales", "eeptools", "data.table",
@@ -11,16 +30,9 @@ pkgs_to_install_load <- c("tidyr", "stringr", "readr","lubridate", "RMySQL","rea
                           "lazyeval","DescTools")
 sapply(pkgs_to_install_load,install_load)
 
-if (!"DBI" %in% rownames(installed.packages())) 
-  devtools::install_github("rstats-db/DBI")
-if (!"pool" %in% rownames(installed.packages())) 
-  devtools::install_github("rstudio/pool")
-if (!"shiny" %in% rownames(installed.packages())) 
-  devtools::install_github("rstudio/shiny")
 
-library(DBI)
-library(pool)
-library(shiny)
+
+
 
 # library("tidyr")
 # library("stringr")
@@ -44,12 +56,12 @@ library(shiny)
 # library(DescTools)
 options(shiny.trace=F)
 
-my_db <- src_mysql(
-  dbname = "openmrs",
-  host =  "localhost",
-  user = "root",
-  password = ""
-)
+# my_db <- src_mysql(
+#   dbname = "openmrs",
+#   host =  "localhost",
+#   user = "root",
+#   password = ""
+# )
 
 pool <- dbPool(
   drv = RMySQL::MySQL(),
@@ -245,20 +257,20 @@ server <- function(input, output, session) {
     if(input$inTabPanel=="Observations"){
       dbOutput <- list("Obs Date"=1)
       #SRC_POOL <- src_pool(pool)
-      SRC_POOL <- my_db
-      concept_data_type <- SRC_POOL %>%
+      #SRC_POOL <- my_db
+      concept_data_type <- pool %>%
          tbl("concept_datatype") %>%
          select(concept_datatype_id,name, retired) %>%
          filter(retired == 0, name=="Datetime")  #Get all date type concepts
       
-      concept <- SRC_POOL %>%
+      concept <- pool %>%
          tbl("concept") %>%
          inner_join(concept_data_type, by=c("datatype_id"="concept_datatype_id")) %>%
          filter(retired.x==0) %>%
          select(concept_id) %>%
          rename(conceptid = concept_id)
       
-       concept_names <- SRC_POOL %>%
+       concept_names <- pool %>%
          tbl("concept_name") %>%
          inner_join(concept, by = c("concept_id"="conceptid")) %>%
          filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>%
@@ -312,24 +324,24 @@ server <- function(input, output, session) {
  
   questions_answers <- eventReactive(input$inSelect, {
     #conDplyr <- src_pool(pool)
-    conDplyr <- my_db
+    #conDplyr <- my_db
     filterBy <- input$inSelect
     dbOutput <- list()
     concept_names <- NULL
     if(filterBy==1){ #Class
-      concept_classes <- conDplyr %>% 
+      concept_classes <- pool %>% 
         tbl("concept_class") %>% 
         select(concept_class_id, name, retired) %>% 
         filter(retired == 0) %>% 
         collect(n=Inf)
       dbOutput <- setNames(concept_classes$concept_class_id, concept_classes$name)
     }else if(filterBy %in% c(2,3)){ #Question and Answer
-      concept_answers <- conDplyr %>% 
+      concept_answers <- pool %>% 
         tbl("concept_answer") %>% 
         distinct(answer_concept) %>% 
         select(answer_concept) %>% 
         collect(n= Inf)
-      concept_names <- conDplyr %>% 
+      concept_names <- pool %>% 
         tbl("concept_name") %>% 
         select(concept_id, name, voided, concept_name_type) %>% 
         filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
@@ -356,8 +368,8 @@ server <- function(input, output, session) {
     concepts <- input$inCheckboxGroup
     if(filterBy==2 && !is.null(concepts)){
       #conDplyr <- src_pool(pool)
-      conDplyr <- my_db
-      concept_answers <- conDplyr %>% 
+      #conDplyr <- my_db
+      concept_answers <- pool %>% 
         tbl("concept_answer") %>% 
         select(answer_concept, concept_id) %>% 
         collect(n= Inf)
@@ -368,7 +380,7 @@ server <- function(input, output, session) {
       concept_answers <- concept_answers %>% 
         group_by(answer_concept) %>% 
         summarise(Count = n())
-      concept_names <- conDplyr %>% 
+      concept_names <- pool %>% 
         tbl("concept_name") %>% 
         select(concept_id, name, voided, concept_name_type) %>% 
         filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
@@ -399,20 +411,20 @@ server <- function(input, output, session) {
   })
   observeEvent(input$inApply,{
       #conDplyr <- src_pool(pool)
-      conDplyr <- my_db
+      #conDplyr <- my_db
       filterBy <- input$inSelect
       listBy <- as.list(input$inCheckboxGroup)
       dateBy <- input$inDateBy
       dateRange <- as.character(input$inDateRange)
       conceptDates <- as.list(input$inDateBy)
       
-      concepts <- conDplyr %>% 
+      concepts <- pool %>% 
         tbl("concept") %>% 
         select(concept_id, class_id) %>% 
         rename(conceptid = concept_id)
       
       if(filterBy ==1){#Concept class
-        obs <- conDplyr %>% 
+        obs <- pool %>% 
           tbl("obs") %>% 
           inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
           filter(voided==0, class_id %in% listBy) %>% 
@@ -423,7 +435,7 @@ server <- function(input, output, session) {
           collect(n = Inf) 
       }else if(filterBy==2){#Concept Name
         
-        obs <- conDplyr %>% 
+        obs <- pool %>% 
           tbl("obs") %>% 
           inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
           filter(voided==0, concept_id %in% listBy) %>% 
@@ -440,7 +452,7 @@ server <- function(input, output, session) {
         }
       }else{
         
-        obs <- conDplyr %>% 
+        obs <- pool %>% 
           tbl("obs") %>% 
           inner_join(concepts, by=c("concept_id"="conceptid")) %>% 
           filter(voided==0, value_coded %in% listBy) %>% 
@@ -452,7 +464,7 @@ server <- function(input, output, session) {
         
       }
       
-      concept_names <- conDplyr %>% 
+      concept_names <- pool %>% 
         tbl("concept_name") %>% 
         select(concept_id, name, voided, concept_name_type) %>% 
         rename(conceptid = concept_id) %>% 
@@ -481,7 +493,7 @@ server <- function(input, output, session) {
         obs <- obs %>% 
           filter(obs_datetime >=ymd(dateRange[1]), obs_datetime<=ymd(dateRange[2]))
       }else{#Concept Date
-        obs_dt <- conDplyr %>% 
+        obs_dt <- pool %>% 
           tbl("obs") %>% 
           filter(voided==0, concept_id %in% conceptDates) %>% 
           select(person_id, value_datetime) %>% 
@@ -494,12 +506,12 @@ server <- function(input, output, session) {
         obs <- obs %>% 
           inner_join(obs_dt, by = c("person_id"="personId")) 
       }
-      pat_identifiers <- conDplyr %>% 
+      pat_identifiers <- pool %>% 
         tbl("patient_identifier") %>% 
         filter(voided==0,identifier_type==3) %>% 
         select(patient_id, identifier) %>% 
         collect(n=Inf)
-      person_demographics <- conDplyr %>% 
+      person_demographics <- pool %>% 
         tbl("person") %>% 
         filter(voided == 0) %>% 
         select(person_id, gender, birthdate) %>% 
