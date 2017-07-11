@@ -57,6 +57,7 @@ options(shiny.trace=F)
 
 source("connector.R")
 source("ui.R")
+source("dao.R")
 
 pool <- getConnectionPool()
 age <- function(from, to) {
@@ -95,34 +96,11 @@ server <- function(input, output, session) {
   main_plot <- reactiveValues(data = NULL)
   table_data <- reactiveValues(data = NULL)
   selectChoices <- reactiveValues(data = list("Class" = 1, "Question" = 2, "Answer" = 3))
-  conceptDates <- eventReactive(input$inTabPanel,{
-    if(input$inTabPanel=="Observations"){
-      dbOutput <- list("Obs Date"=1)
-      #SRC_POOL <- src_pool(pool)
-      #SRC_POOL <- my_db
-      concept_data_type <- pool %>%
-         tbl("concept_datatype") %>%
-         select(concept_datatype_id,name, retired) %>%
-         filter(retired == 0, name=="Datetime")  #Get all date type concepts
-      
-      concept <- pool %>%
-         tbl("concept") %>%
-         inner_join(concept_data_type, by=c("datatype_id"="concept_datatype_id")) %>%
-         filter(retired.x==0) %>%
-         select(concept_id) %>%
-         rename(conceptid = concept_id)
-      
-       concept_names <- pool %>%
-         tbl("concept_name") %>%
-         inner_join(concept, by = c("concept_id"="conceptid")) %>%
-         filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>%
-         select(concept_id, name) %>%
-         collect(n= Inf)
   
-      dbOutput <- append(dbOutput,setNames(concept_names$concept_id, concept_names$name))
-      dbOutput
-    }
-  })
+  dateTimeConcepts <- getDateTimeConcepts(input, pool)
+  conceptForSelection <- getConceptForSelection(input, pool)
+  conceptAnswers <- getConceptAnswers(input, pool)
+
   observeEvent(input$inExplorer, {
     if(input$inExplorer){shinyjs::show(id = "inSaveSideBar")}
     else{shinyjs::hide(id = "inSaveSideBar")}
@@ -158,42 +136,9 @@ server <- function(input, output, session) {
       )
       updateSelectInput(session, "inDateBy",
                         label = "Date Filter",
-                        choices = conceptDates()
+                        choices = dateTimeConcepts()
       )
       
-    }
-  })
- 
-  questions_answers <- eventReactive(input$inSelect, {
-    #conDplyr <- src_pool(pool)
-    #conDplyr <- my_db
-    filterBy <- input$inSelect
-    dbOutput <- list()
-    concept_names <- NULL
-    if(filterBy==1){ #Class
-      concept_classes <- pool %>% 
-        tbl("concept_class") %>% 
-        select(concept_class_id, name, retired) %>% 
-        filter(retired == 0) %>% 
-        collect(n=Inf)
-      dbOutput <- setNames(concept_classes$concept_class_id, concept_classes$name)
-    }else if(filterBy %in% c(2,3)){ #Question and Answer
-      concept_answers <- pool %>% 
-        tbl("concept_answer") %>% 
-        distinct(answer_concept) %>% 
-        select(answer_concept) %>% 
-        collect(n= Inf)
-      concept_names <- pool %>% 
-        tbl("concept_name") %>% 
-        select(concept_id, name, voided, concept_name_type) %>% 
-        filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
-        collect(n=Inf)
-        if(filterBy==2){
-          concept_names<- concept_names %>% filter(!(concept_id %in% concept_answers$answer_concept))
-        }else if(filterBy==3){
-          concept_names<- concept_names %>% filter(concept_id %in% concept_answers$answer_concept)
-        }
-      dbOutput <- setNames(concept_names$concept_id, concept_names$name)
     }
   })
  
@@ -201,46 +146,16 @@ server <- function(input, output, session) {
     updateSelectInput(session, 
                       "inCheckboxGroup",
                       label = "",
-                      choices = questions_answers(),
-                      selected = tail(questions_answers(), 1)
+                      choices = conceptForSelection(),
+                      selected = tail(conceptForSelection(), 1)
                     )
-  })
-  answers <- eventReactive(c(input$inCheckboxGroup,input$inSelect),{
-    filterBy <- input$inSelect
-    concepts <- input$inCheckboxGroup
-    if(filterBy==2 && !is.null(concepts)){
-      #conDplyr <- src_pool(pool)
-      #conDplyr <- my_db
-      concept_answers <- pool %>% 
-        tbl("concept_answer") %>% 
-        select(answer_concept, concept_id) %>% 
-        collect(n= Inf)
-      
-      concept_answers <- concept_answers %>% 
-          filter(concept_id %in% concepts)
-      
-      concept_answers <- concept_answers %>% 
-        group_by(answer_concept) %>% 
-        summarise(Count = n())
-      concept_names <- pool %>% 
-        tbl("concept_name") %>% 
-        select(concept_id, name, voided, concept_name_type) %>% 
-        filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
-        collect(n=Inf) %>% 
-        filter(concept_id %in% concept_answers$answer_concept)
-      dbOutput <- setNames(concept_names$concept_id, concept_names$name)
-      dbOutput
-    } else{
-      dbOutput <- c("")
-      dbOutput
-    }
   })
   observeEvent(c(input$inCheckboxGroup,input$inSelect),{
       updateSelectInput(session, 
                         "inAnswers",
                         label = "",
-                        choices = answers(),
-                        selected = tail(answers(), 1)
+                        choices = conceptAnswers(),
+                        selected = tail(conceptAnswers(), 1)
                         )
   })
   observeEvent(input$inColumnNames, {
@@ -260,11 +175,7 @@ server <- function(input, output, session) {
       dateRange <- as.character(input$inDateRange)
       conceptDates <- as.list(input$inDateBy)
       
-      concepts <- pool %>% 
-        tbl("concept") %>% 
-        select(concept_id, class_id) %>% 
-        rename(conceptid = concept_id)
-      
+      concepts <- getConcepts(input, pool)
       if(filterBy ==1){#Concept class
         obs <- pool %>% 
           tbl("obs") %>% 
