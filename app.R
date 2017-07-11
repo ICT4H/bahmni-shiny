@@ -7,7 +7,7 @@
 #                           "lazyeval","DescTools")
 # 
 # remove.packages(pkgs_to_remove)
-
+install.packages('RMySQL', type='source')
 if (!"install.load" %in% rownames(installed.packages()))
   install.packages("install.load")
 library(install.load)
@@ -21,7 +21,6 @@ if (!"pool" %in% rownames(installed.packages()))
 if (!"shiny" %in% rownames(installed.packages())) 
   devtools::install_github("rstudio/shiny")
 library(DBI)
-library(pool)
 library(shiny)
 #install the required packages
 pkgs_to_install_load <- c("tidyr", "stringr", "readr","lubridate", "RMySQL","readr",
@@ -56,20 +55,9 @@ sapply(pkgs_to_install_load,install_load)
 # library(DescTools)
 options(shiny.trace=F)
 
-# my_db <- src_mysql(
-#   dbname = "openmrs",
-#   host =  "localhost",
-#   user = "root",
-#   password = ""
-# )
+source("connector.R")
 
-pool <- dbPool(
-  drv = RMySQL::MySQL(),
-  dbname = "openmrs",
-  host = "localhost",
-  username = "root",
-  password = ""
-)
+pool <- getConnectionPool()
 age <- function(from, to) {
   from_lt = as.POSIXlt(from)
   to_lt = as.POSIXlt(to)
