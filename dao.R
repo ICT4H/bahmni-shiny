@@ -1,5 +1,6 @@
+library(rlang)
 getDateTimeConcepts <- function(input, pool) {
-  conceptDates <- eventReactive(input$inTabPanel,{
+  eventReactive(input$inTabPanel,{
     if(input$inTabPanel=="Observations"){
       dbOutput <- list("Obs Date"=1)
       #SRC_POOL <- src_pool(pool)
@@ -30,7 +31,7 @@ getDateTimeConcepts <- function(input, pool) {
 }
 
 getConceptForSelection <- function(input, pool){
-  questionAnswers <- eventReactive(input$inSelect, {
+  eventReactive(input$inSelect, {
     #conDplyr <- src_pool(pool)
     #conDplyr <- my_db
     filterBy <- input$inSelect
@@ -98,8 +99,98 @@ getConceptAnswers <- function(input, pool){
 }
 
 getConcepts <- function(input, pool){
-  concepts <- pool %>% 
+  pool %>% 
   tbl("concept") %>% 
   select(concept_id, class_id) %>% 
   rename(conceptid = concept_id)
+}
+
+getObsForSelection <- function(pool, concepts, filterColumn, listBy) {
+  pool %>% 
+    tbl("obs") %>% 
+    inner_join(concepts, by=c("concept_id"="conceptid")) %>%  # in case of class the join should be on value_coded
+    filter_("voided==0", paste(filterColumn, "%in% listBy")) %>% 
+    select(obs_id,person_id, concept_id, obs_datetime, 
+           location_id, value_coded, 
+           value_drug, value_datetime, value_numeric,
+           value_text, comments, obs_group_id) %>% 
+    collect(n = Inf) 
+}
+
+getAllConceptNames <- function(pool) {
+  pool %>% 
+    tbl("concept_name") %>% 
+    select(concept_id, name, voided, concept_name_type) %>% 
+    rename(conceptid = concept_id) %>% 
+    filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
+    collect(n=Inf) 
+}
+
+mapObsWithConceptNames <- function(obs, conceptNames) {
+  obs %>% 
+    inner_join(conceptNames, by = c("concept_id"="conceptid")) %>% 
+    select(-voided, -concept_name_type) %>% 
+    rename(concept_name = name) %>% 
+    left_join(conceptNames, by = c("value_coded"="conceptid")) %>% 
+    select(-voided, -concept_name_type, -value_coded) %>% 
+    rename(value_coded = name) %>% 
+    select(obs_id, person_id, concept_name, obs_datetime, 
+           location_id, value_coded, 
+           value_drug, value_datetime, value_numeric,
+           value_text, comments, obs_group_id) %>% 
+    mutate(location_id = as.factor(location_id),
+           value_coded = as.factor(value_coded),
+           concept_name = as.factor(concept_name),
+           obs_datetime= ymd_hms(obs_datetime),
+           value_datetime = ymd_hms(value_datetime),
+           obs_group_id = as.factor(obs_group_id))
+}
+
+filterObsByDateConcept <- function(pool, obs, conceptDates) {
+  obs_dt <- pool %>% 
+    tbl("obs") %>% 
+    filter(voided==0, concept_id %in% conceptDates) %>% 
+    select(person_id, value_datetime) %>% 
+    rename(personId = person_id) %>% 
+    collect(n=Inf) %>% 
+    mutate(value_datetime = ymd_hms(value_datetime)) %>% 
+    filter(value_datetime>=ymd(dateRange[1]),
+           value_datetime<=ymd(dateRange[2])) %>% 
+    select(personId)
+   obs %>% 
+    inner_join(obs_dt, by = c("person_id"="personId"))
+}
+
+getPatientIdentifiers <- function(pool){
+  pool %>% 
+    tbl("patient_identifier") %>% 
+    filter(voided==0,identifier_type==3) %>% 
+    select(patient_id, identifier) %>% 
+    collect(n=Inf)
+}
+
+age <- function(from, to) {
+  from_lt = as.POSIXlt(from)
+  to_lt = as.POSIXlt(to)
+  
+  age = to_lt$year - from_lt$year
+  
+  ifelse(to_lt$mon < from_lt$mon |
+           (to_lt$mon == from_lt$mon & to_lt$mday < from_lt$mday),
+         age - 1, age)
+}
+
+getPersonDemographics <- function(pool){
+  pool %>% 
+    tbl("person") %>% 
+    filter(voided == 0) %>% 
+    select(person_id, gender, birthdate) %>% 
+    collect(n=Inf) %>% 
+    mutate(birthdate = ymd(birthdate),
+           gender = as.factor(gender)
+    ) %>% 
+    rename(Gender = gender) %>% 
+    mutate(Age = age(from=birthdate, to=Sys.Date())
+    ) %>% 
+    select(-birthdate)
 }
