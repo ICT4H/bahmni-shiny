@@ -8,6 +8,8 @@
 # 
 # remove.packages(pkgs_to_remove)
 install.packages('RMySQL', type='source')
+if (!"properties" %in% rownames(installed.packages()))
+  install.packages("properties")
 if (!"install.load" %in% rownames(installed.packages()))
   install.packages("install.load")
 library(install.load)
