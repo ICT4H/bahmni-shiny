@@ -1,26 +1,28 @@
-sideBarUI <- function() {
-	div(id ="inSaveSideBar",sidebarPanel(
+sideBarUI <- function(id) {
+	ns <- NS(id)
+	div(id =ns("inSaveSideBar"),sidebarPanel(
 	  width = 3,
-	  actionButton("inSave","Save"),
+	  actionButton(ns("inSave"),"Save"),
 	  p(""),
-	  checkboxGroupInput('inDocuments', 'Files:',
+	  checkboxGroupInput(ns('inDocuments'), 'Files:',
 	                     choices=c(""))
 	))	
 }
 
-observationTabUI <- function(){
+observationTabUI <- function(id){
+  ns <- NS(id)
 	tagList(
          p(""),
          fluidRow(
-           column(2,selectInput("inSelect", "",
+           column(2,selectInput(ns("inSelect"), "",
                                 c(""), selected = 2))
            ,
-           column(4,selectInput("inCheckboxGroup", "",
+           column(4,selectInput(ns("inCheckboxGroup"), "",
                                 c(""), multiple = T))
            ,
            conditionalPanel(
-             condition = "input.inSelect==2",
-             column(4,selectInput("inAnswers", "",
+             condition = paste("input[['",id,"-inSelect']]==2", sep=""),
+             column(4,selectInput(ns("inAnswers"), "",
                                   c(""), multiple = T))
            )
          ),

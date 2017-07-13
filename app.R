@@ -58,8 +58,10 @@ options(shiny.trace=F)
 source("connector.R")
 source("ui.R")
 source("dao.R")
+source("serverModules.R")
 
 pool <- getConnectionPool()
+observationTabNS <- "observation"
 
 ui <- fluidPage(
   useShinyjs(),
@@ -69,11 +71,11 @@ ui <- fluidPage(
            block = F, type = "toggle", value = TRUE),
   pageWithSidebar(
     headerPanel("Welcome!"),
-    sideBarUI(),
+    sideBarUI("sideBar"),
     mainPanel(
       tabsetPanel(
         id="inTabPanel",
-        tabPanel('Observations', observationTabUI()),
+        tabPanel('Observations', observationTabUI(observationTabNS)),
         tabPanel('Bars and Charts',barChartTabUI()),
         tabPanel('Dashboard')
       )
@@ -81,20 +83,22 @@ ui <- fluidPage(
   )
 )
 
-
 server <- function(input, output, session) {
   main_table <- reactiveValues(data = NULL)
   main_plot <- reactiveValues(data = NULL)
   table_data <- reactiveValues(data = NULL)
   selectChoices <- reactiveValues(data = list("Class" = 1, "Question" = 2, "Answer" = 3))
   
+  callModule(sideBar, "sideBar")
+  callModule(observationTab,observationTabNS, pool)
+
   dateTimeConcepts <- getDateTimeConcepts(input, pool)
   conceptForSelection <- getConceptForSelection(input, pool)
   conceptAnswers <- getConceptAnswers(input, pool)
 
   observeEvent(input$inExplorer, {
-    if(input$inExplorer){shinyjs::show(id = "inSaveSideBar")}
-    else{shinyjs::hide(id = "inSaveSideBar")}
+    if(input$inExplorer){shinyjs::show(id = "sideBar-inSaveSideBar")}
+    else{shinyjs::hide(id = "sideBar-inSaveSideBar")}
   })
   observeEvent(input$inShowColumns, {
     if(input$inShowColumns){
@@ -120,7 +124,7 @@ server <- function(input, output, session) {
     }
     else{
       # Can also set the label and select items
-      updateSelectInput(session, "inSelect",
+      updateSelectInput(session, "observation-inSelect",
                         label = "",
                         choices = selectChoices$data,
                         selected = 2
@@ -132,23 +136,7 @@ server <- function(input, output, session) {
       
     }
   })
- 
-  observeEvent(input$inSelect, {
-    updateSelectInput(session, 
-                      "inCheckboxGroup",
-                      label = "",
-                      choices = conceptForSelection(),
-                      selected = tail(conceptForSelection(), 1)
-                    )
-  })
-  observeEvent(c(input$inCheckboxGroup,input$inSelect),{
-      updateSelectInput(session, 
-                        "inAnswers",
-                        label = "",
-                        choices = conceptAnswers(),
-                        selected = tail(conceptAnswers(), 1)
-                        )
-  })
+
   observeEvent(input$inColumnNames, {
     obs <- main_table$data
     obs <- obs[,input$inColumnNames, drop=F]
