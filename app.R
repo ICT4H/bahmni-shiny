@@ -47,30 +47,6 @@ pkgs_to_install_load <-
   )
 sapply(pkgs_to_install_load, install_load)
 
-
-
-
-
-# library("tidyr")
-# library("stringr")
-# library("lubridate")
-# library("RMySQL")
-# library("readr")
-# library("ggplot2")
-# library("scales")
-# library("eeptools")
-# library(data.table)
-# library(DBI)
-# library(pool)
-# library("dplyr")
-# library(shiny)
-# library(ggplot2)
-# library(DT)
-# library(shinyjs)
-# library(shinyBS)
-# library(purrr)
-# library(lazyeval)
-# library(DescTools)
 options(shiny.trace = F)
 
 source("ui.R")
@@ -82,24 +58,14 @@ barChartsTabNS <- "barChart"
 
 ui <- fluidPage(
   useShinyjs(),
-  tags$head(tags$style(".rightAlign{float:right;}")),
-  tags$head(tags$style(".btnbottomAlign{margin-top: 25px;}")),
-  bsButton(
-    "inExplorer",
-    label = "Files",
-    block = F,
-    type = "toggle",
-    value = TRUE
-  ),
-  pageWithSidebar(
-    headerPanel("Welcome!"),
-    sideBarUI("sideBar"),
-    mainPanel(tabsetPanel(
-      id = "inTabPanel",
-      tabPanel('Observations', observationTabUI(observationTabNS)),
-      tabPanel('Bars and Charts', barChartTabUI(barChartsTabNS)),
-      tabPanel('Dashboard')
-    ))
+  titlePanel("Welcome!"),
+  navlistPanel(
+    "Observations",
+    tabPanel("Hypertension",mainPanelUI("hypertension")),
+    tabPanel("Diabetes",mainPanelUI("diabetes")),
+    "Tests",
+    tabPanel("RBC",mainPanelUI("rbc")),
+    widths = c(2,10)
   )
 )
 
@@ -107,72 +73,11 @@ server <- function(input, output, session) {
   main_table <- reactiveValues(data = NULL)
   main_plot <- reactiveValues(data = NULL)
   table_data <- reactiveValues(data = NULL)
-  selectChoices <-
-    reactiveValues(data = list(
-      "Class" = 1,
-      "Question" = 2,
-      "Answer" = 3
-    )
-  )
-  dateTimeConcepts <- eventReactive(input$inTabPanel,{
-      if(input$inTabPanel=="Observations"){
-        getDateTimeConcepts()
-      }
-  })
-  
-  callModule(sideBar, "sideBar")
-  callModule(observationTab, observationTabNS, main_table)
-  callModule(barChartTab,
-             barChartsTabNS,
-             main_table,
-             table_data,
-             main_plot)
-  
-  observeEvent(input$inExplorer, {
-    if (input$inExplorer) {
-      shinyjs::show(id = "sideBar-inSaveSideBar")
-    }
-    else{
-      shinyjs::hide(id = "sideBar-inSaveSideBar")
-    }
-  })
-  
-  observeEvent(input$inTabPanel, {
-    if (input$inTabPanel == "Bars and Charts") {
-      updateCheckboxGroupInput(
-        session,
-        "barChart-inDimensions",
-        choices = names(main_table$data),
-        selected = NULL
-      )
-      updateSelectInput(
-        session,
-        "barChart-inCharts",
-        choices = list(
-          "Table" = 1,
-          "Bar Chart" = 2,
-          "Histogram" = 3,
-          "Scatter Plot" = 4
-        )
-      )
-      
-    }
-    else{
-      # Can also set the label and select items
-      updateSelectInput(
-        session,
-        "observation-inSelect",
-        label = "",
-        choices = selectChoices$data,
-        selected = 2
-      )
-      updateSelectInput(session,
-                        "observation-inDateBy",
-                        label = "Date Filter",
-                        choices = dateTimeConcepts())
-      
-    }
-  })
+  # callModule(mainPanel, "hypertension")
+  # callModule(mainPanel, "diabetes")
+  # callModule(mainPanel, "rbc")
+  # callModule(observationTab, observationTabNS, main_table)
+  # callModule(barChartTab, barChartsTabNS, main_table, table_data, main_plot)
 }
 
 shinyApp(ui = ui, server = server)
