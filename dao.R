@@ -1,112 +1,100 @@
 library(rlang)
-getDateTimeConcepts <- function(input, pool) {
-  #DAO should not get input as parameter, it should get specific input
-  eventReactive(input$inTabPanel,{
-    if(input$inTabPanel=="Observations"){
-      dbOutput <- list("Obs Date"=1)
-      #SRC_POOL <- src_pool(pool)
-      #SRC_POOL <- my_db
-      concept_data_type <- pool %>%
-         tbl("concept_datatype") %>%
-         select(concept_datatype_id,name, retired) %>%
-         filter(retired == 0, name=="Datetime")  #Get all date type concepts
-      
-      concept <- pool %>%
-         tbl("concept") %>%
-         inner_join(concept_data_type, by=c("datatype_id"="concept_datatype_id")) %>%
-         filter(retired.x==0) %>%
-         select(concept_id) %>%
-         rename(conceptid = concept_id)
-      
-       concept_names <- pool %>%
-         tbl("concept_name") %>%
-         inner_join(concept, by = c("concept_id"="conceptid")) %>%
-         filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>%
-         select(concept_id, name) %>%
-         collect(n= Inf)
+source("connector.R")
+pool <- getConnectionPool()
+getDateTimeConcepts <- function() {
+  dbOutput <- list("Obs Date"=1)
+  #SRC_POOL <- src_pool(pool)
+  #SRC_POOL <- my_db
+  concept_data_type <- pool %>%
+     tbl("concept_datatype") %>%
+     select(concept_datatype_id,name, retired) %>%
+     filter(retired == 0, name=="Datetime")  #Get all date type concepts
   
-      dbOutput <- append(dbOutput,setNames(concept_names$concept_id, concept_names$name))
-      dbOutput
-    }
-  })
+  concept <- pool %>%
+     tbl("concept") %>%
+     inner_join(concept_data_type, by=c("datatype_id"="concept_datatype_id")) %>%
+     filter(retired.x==0) %>%
+     select(concept_id) %>%
+     rename(conceptid = concept_id)
+  
+   concept_names <- pool %>%
+     tbl("concept_name") %>%
+     inner_join(concept, by = c("concept_id"="conceptid")) %>%
+     filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>%
+     select(concept_id, name) %>%
+     collect(n= Inf)
+
+  dbOutput <- append(dbOutput,setNames(concept_names$concept_id, concept_names$name))
+  dbOutput
 }
 
-getConceptForSelection <- function(input, pool){
-  eventReactive(input$inSelect, {
+getConceptByType <- function(type){
+  dbOutput <- list()
+  concept_names <- NULL
+  if(type==1){ #Class
+    concept_classes <- pool %>% 
+      tbl("concept_class") %>% 
+      select(concept_class_id, name, retired) %>% 
+      filter(retired == 0) %>% 
+      collect(n=Inf)
+    dbOutput <- setNames(concept_classes$concept_class_id, concept_classes$name)
+  }else if(type %in% c(2,3)){ #Question and Answer
+    concept_answers <- pool %>% 
+      tbl("concept_answer") %>% 
+      distinct(answer_concept) %>% 
+      select(answer_concept) %>% 
+      collect(n= Inf)
+    concept_names <- pool %>% 
+      tbl("concept_name") %>% 
+      select(concept_id, name, voided, concept_name_type) %>% 
+      filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
+      collect(n=Inf)
+      if(type==2){
+        concept_names<- concept_names %>% filter(!(concept_id %in% concept_answers$answer_concept))
+      }else if(type==3){
+        concept_names<- concept_names %>% filter(concept_id %in% concept_answers$answer_concept)
+      }
+    dbOutput <- setNames(concept_names$concept_id, concept_names$name)
+  }
+}
+
+getConceptAnswers <- function(concepts, filterBy){
+  if(filterBy==2 && !is.null(concepts)){
     #conDplyr <- src_pool(pool)
     #conDplyr <- my_db
-    filterBy <- input$inSelect
-    dbOutput <- list()
-    concept_names <- NULL
-    if(filterBy==1){ #Class
-      concept_classes <- pool %>% 
-        tbl("concept_class") %>% 
-        select(concept_class_id, name, retired) %>% 
-        filter(retired == 0) %>% 
-        collect(n=Inf)
-      dbOutput <- setNames(concept_classes$concept_class_id, concept_classes$name)
-    }else if(filterBy %in% c(2,3)){ #Question and Answer
-      concept_answers <- pool %>% 
-        tbl("concept_answer") %>% 
-        distinct(answer_concept) %>% 
-        select(answer_concept) %>% 
-        collect(n= Inf)
-      concept_names <- pool %>% 
-        tbl("concept_name") %>% 
-        select(concept_id, name, voided, concept_name_type) %>% 
-        filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
-        collect(n=Inf)
-        if(filterBy==2){
-          concept_names<- concept_names %>% filter(!(concept_id %in% concept_answers$answer_concept))
-        }else if(filterBy==3){
-          concept_names<- concept_names %>% filter(concept_id %in% concept_answers$answer_concept)
-        }
-      dbOutput <- setNames(concept_names$concept_id, concept_names$name)
-    }
-  })
+    concept_answers <- pool %>% 
+      tbl("concept_answer") %>% 
+      select(answer_concept, concept_id) %>% 
+      collect(n= Inf)
+    
+    concept_answers <- concept_answers %>% 
+        filter(concept_id %in% concepts)
+    
+    concept_answers <- concept_answers %>% 
+      group_by(answer_concept) %>% 
+      summarise(Count = n())
+    concept_names <- pool %>% 
+      tbl("concept_name") %>% 
+      select(concept_id, name, voided, concept_name_type) %>% 
+      filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
+      collect(n=Inf) %>% 
+      filter(concept_id %in% concept_answers$answer_concept)
+    dbOutput <- setNames(concept_names$concept_id, concept_names$name)
+    dbOutput
+  } else{
+    dbOutput <- c("")
+    dbOutput
+  }
 }
 
-getConceptAnswers <- function(input, pool){
-  answers <- eventReactive(c(input$inCheckboxGroup,input$inSelect),{
-    filterBy <- input$inSelect
-    concepts <- input$inCheckboxGroup
-    if(filterBy==2 && !is.null(concepts)){
-      #conDplyr <- src_pool(pool)
-      #conDplyr <- my_db
-      concept_answers <- pool %>% 
-        tbl("concept_answer") %>% 
-        select(answer_concept, concept_id) %>% 
-        collect(n= Inf)
-      
-      concept_answers <- concept_answers %>% 
-          filter(concept_id %in% concepts)
-      
-      concept_answers <- concept_answers %>% 
-        group_by(answer_concept) %>% 
-        summarise(Count = n())
-      concept_names <- pool %>% 
-        tbl("concept_name") %>% 
-        select(concept_id, name, voided, concept_name_type) %>% 
-        filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
-        collect(n=Inf) %>% 
-        filter(concept_id %in% concept_answers$answer_concept)
-      dbOutput <- setNames(concept_names$concept_id, concept_names$name)
-      dbOutput
-    } else{
-      dbOutput <- c("")
-      dbOutput
-    }
-  })
-}
-
-getConcepts <- function(input, pool){
+getConcepts <- function(){
   pool %>% 
   tbl("concept") %>% 
   select(concept_id, class_id) %>% 
   rename(conceptid = concept_id)
 }
 
-getObsForSelection <- function(pool, concepts, filterColumn, listBy) {
+getObsForSelection <- function(concepts, filterColumn, listBy) {
   pool %>% 
     tbl("obs") %>% 
     inner_join(concepts, by=c("concept_id"="conceptid")) %>%  # in case of class the join should be on value_coded
@@ -118,7 +106,7 @@ getObsForSelection <- function(pool, concepts, filterColumn, listBy) {
     collect(n = Inf) 
 }
 
-getAllConceptNames <- function(pool) {
+getAllConceptNames <- function() {
   pool %>% 
     tbl("concept_name") %>% 
     select(concept_id, name, voided, concept_name_type) %>% 
@@ -147,7 +135,7 @@ mapObsWithConceptNames <- function(obs, conceptNames) {
            obs_group_id = as.factor(obs_group_id))
 }
 
-filterObsByDateConcept <- function(pool, obs, conceptDates) {
+filterObsByDateConcept <- function(obs, conceptDates) {
   obs_dt <- pool %>% 
     tbl("obs") %>% 
     filter(voided==0, concept_id %in% conceptDates) %>% 
@@ -162,7 +150,7 @@ filterObsByDateConcept <- function(pool, obs, conceptDates) {
     inner_join(obs_dt, by = c("person_id"="personId"))
 }
 
-getPatientIdentifiers <- function(pool){
+getPatientIdentifiers <- function(){
   pool %>% 
     tbl("patient_identifier") %>% 
     filter(voided==0,identifier_type==3) %>% 
@@ -181,7 +169,7 @@ age <- function(from, to) {
          age - 1, age)
 }
 
-getPersonDemographics <- function(pool){
+getPersonDemographics <- function(){
   pool %>% 
     tbl("person") %>% 
     filter(voided == 0) %>% 

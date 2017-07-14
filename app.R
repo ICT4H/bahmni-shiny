@@ -73,12 +73,10 @@ sapply(pkgs_to_install_load, install_load)
 # library(DescTools)
 options(shiny.trace = F)
 
-source("connector.R")
 source("ui.R")
 source("dao.R")
 source("serverModules.R")
 
-pool <- getConnectionPool()
 observationTabNS <- "observation"
 barChartsTabNS <- "barChart"
 
@@ -114,19 +112,21 @@ server <- function(input, output, session) {
       "Class" = 1,
       "Question" = 2,
       "Answer" = 3
-    ))
+    )
+  )
+  dateTimeConcepts <- eventReactive(input$inTabPanel,{
+      if(input$inTabPanel=="Observations"){
+        getDateTimeConcepts()
+      }
+  })
   
   callModule(sideBar, "sideBar")
-  callModule(observationTab, observationTabNS, pool, main_table)
+  callModule(observationTab, observationTabNS, main_table)
   callModule(barChartTab,
              barChartsTabNS,
              main_table,
              table_data,
              main_plot)
-  
-  dateTimeConcepts <- getDateTimeConcepts(input, pool)
-  conceptForSelection <- getConceptForSelection(input, pool)
-  conceptAnswers <- getConceptAnswers(input, pool)
   
   observeEvent(input$inExplorer, {
     if (input$inExplorer) {

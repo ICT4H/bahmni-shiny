@@ -5,9 +5,16 @@ sideBar <- function(input, output, session) {
 }
 
 observationTab <-
-  function(input, output, session, pool, mainTable) {
-    conceptsForSelection <- getConceptForSelection(input, pool)
-    conceptAnswers <- getConceptAnswers(input, pool)
+  function(input, output, session, mainTable) {
+    conceptsForSelection <- eventReactive(input$inSelect, {
+      filterBy <- input$inSelect
+      getConceptByType(filterBy)
+    })
+    conceptAnswers <- eventReactive(c(input$inCheckboxGroup,input$inSelect),{
+      filterBy <- input$inSelect
+      concepts <- input$inCheckboxGroup
+      getConceptAnswers(concepts, filterBy)
+    })
     
     observeEvent(input$inSelect, {
       updateSelectInput(
@@ -38,15 +45,15 @@ observationTab <-
       dateRange <- as.character(input$inDateRange)
       conceptDates <- as.list(input$inDateBy)
       
-      concepts <- getConcepts(input, pool)
+      concepts <- getConcepts(input)
       if (filterBy == 1) {
         #Concept class
         obs <-
-          getObsForSelection(pool, concepts, "class_id", listBy)
+          getObsForSelection(concepts, "class_id", listBy)
       } else if (filterBy == 2) {
         #Concept Name
         obs <-
-          getObsForSelection(pool, concepts, "concept_id", listBy)
+          getObsForSelection(concepts, "concept_id", listBy)
         answers <- as.list(input$inAnswers)
         if (!is.null(answers)) {
           if (length(answers) > 0) {
@@ -54,9 +61,9 @@ observationTab <-
           }
         }
       } else{
-        obs <- getObsForSelection(pool, concepts, "value_coded", listBy)
+        obs <- getObsForSelection(concepts, "value_coded", listBy)
       }
-      conceptNames <- getAllConceptNames(pool)
+      conceptNames <- getAllConceptNames()
       obs <- mapObsWithConceptNames(obs, conceptNames)
       
       if (dateBy == 1) {
@@ -66,10 +73,10 @@ observationTab <-
                  obs_datetime <= ymd(dateRange[2]))
       } else{
         #Concept Date
-        obs <- filterObsByDateConcept(pool, obs, conceptDates)
+        obs <- filterObsByDateConcept(obs, conceptDates)
       }
-      patIdentifiers <- getPatientIdentifiers(pool)
-      personDemographics <- getPersonDemographics(pool)
+      patIdentifiers <- getPatientIdentifiers()
+      personDemographics <- getPersonDemographics()
       
       obs <- obs %>%
         inner_join(personDemographics, by = c("person_id" = "person_id")) %>%
