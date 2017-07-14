@@ -27,67 +27,67 @@ observationTabUI <- function(id){
            )
          ),
          fluidRow(
-           column(4,selectInput("inDateBy", "Date Filter",
+           column(4,selectInput(ns("inDateBy"), "Date Filter",
                                 c("")))
            ,
-           column(4,dateRangeInput('inDateRange',
+           column(4,dateRangeInput(ns("inDateRange"),
                                    label = 'Range',
                                    start = Sys.Date() -30, end = Sys.Date() 
            ))
          ),
-         actionButton("inApply","Apply"),
+         actionButton(ns("inApply"),"Apply"),
          #what is this part doing?
          conditionalPanel(
            condition = "1==0",
-           checkboxInput("incheckbox", label = "Choice A", value = F)
+           checkboxInput(ns("incheckbox"), label = "Choice A", value = F)
          ),
          #what is this part doing?
          p(""),
          conditionalPanel(
-           condition = "input.incheckbox==1",
-           bsButton("inShowColumns", label = "Hide Column Selection",
+           condition = paste("input[['",id,"-incheckbox']]==1", sep=""),
+           bsButton(ns("inShowColumns"), label = "Hide Column Selection",
                     block = F, type = "toggle", value = TRUE),
            p(""),
            sidebarLayout(
-             div(id ="inColumnNamePanel",sidebarPanel(
+             div(id =ns("inColumnNamePanel"),sidebarPanel(
                width = 3,
-               checkboxGroupInput('inColumnNames', 'Columns:',
+               checkboxGroupInput(ns("inColumnNames"), 'Columns:',
                                   choices=c(""))
              )),
              mainPanel(
                conditionalPanel(
-                 condition = "input.incheckbox==1",
-                     bsCollapse(id = "inCollapseAddCols",
+                 condition = paste("input[['",id,"-incheckbox']]==1", sep="") ,
+                     bsCollapse(id = ns("inCollapseAddCols"),
                                 bsCollapsePanel("Add Columns", fluidRow(
                                   column(4,
-                                         selectizeInput("inNumericCols","Numeric Columns:", choices=c(""))
+                                         selectizeInput(ns("inNumericCols"),"Numeric Columns:", choices=c(""))
                                          ),
                                   column(2,
-                                         numericInput("inStartRange","Start", value="")
+                                         numericInput(ns("inStartRange"),"Start", value="")
                                         ),
                                   column(2,
-                                         numericInput("inEndRange","End", value="")
+                                         numericInput(ns("inEndRange"),"End", value="")
                                         ),
                                   column(2,
-                                         textInput("inLevelName","Name", value="")
+                                         textInput(ns("inLevelName"),"Name", value="")
                                         ),
                                   column(1,
-                                         actionButton("inAddLevel", label = "+", class = 'btnbottomAlign')
+                                         actionButton(ns("inAddLevel"), label = "+", class = 'btnbottomAlign')
                                         ) 
                                 ),
                                 fluidRow(
                                   column(3,
-                                         selectizeInput("inCatLevels","Levels:", choices=c(""))
+                                         selectizeInput(ns("inCatLevels"),"Levels:", choices=c(""))
                                         ),
                                   column(3,
-                                         actionButton("inApplyColumn","Apply", class = 'btnbottomAlign')
+                                         actionButton(ns("inApplyColumn"),"Apply", class = 'btnbottomAlign')
                                         )
                                 ),style = "info")
                      )
                ),
-               DT::dataTableOutput("obsDT")
+               DT::dataTableOutput(ns("obsDT"))
                ,
-               downloadButton('downloadData', 'Download')
+               downloadButton(ns("downloadData"), 'Download')
              )
            )
          )

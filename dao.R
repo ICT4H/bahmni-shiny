@@ -1,5 +1,6 @@
 library(rlang)
 getDateTimeConcepts <- function(input, pool) {
+  #DAO should not get input as parameter, it should get specific input
   eventReactive(input$inTabPanel,{
     if(input$inTabPanel=="Observations"){
       dbOutput <- list("Obs Date"=1)
