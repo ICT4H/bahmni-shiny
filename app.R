@@ -61,23 +61,18 @@ ui <- fluidPage(
   titlePanel("Welcome!"),
   navlistPanel(
     "Observations",
-    tabPanel("Hypertension",mainPanelUI("hypertension")),
-    tabPanel("Diabetes",mainPanelUI("diabetes")),
+    tabPanel("Hypertension",contentPanelUI("hypertension")),
+    tabPanel("Diabetes",contentPanelUI("diabetes")),
     "Tests",
-    tabPanel("RBC",mainPanelUI("rbc")),
+    tabPanel("RBC",contentPanelUI("rbc")),
     widths = c(2,10)
   )
 )
 
 server <- function(input, output, session) {
-  main_table <- reactiveValues(data = NULL)
-  main_plot <- reactiveValues(data = NULL)
-  table_data <- reactiveValues(data = NULL)
-  # callModule(mainPanel, "hypertension")
-  # callModule(mainPanel, "diabetes")
-  # callModule(mainPanel, "rbc")
-  # callModule(observationTab, observationTabNS, main_table)
-  # callModule(barChartTab, barChartsTabNS, main_table, table_data, main_plot)
+  callModule(contentPanel, "hypertension")
+  callModule(contentPanel, "diabetes")
+  callModule(contentPanel, "rbc")
 }
 
 shinyApp(ui = ui, server = server)

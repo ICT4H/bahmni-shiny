@@ -4,64 +4,71 @@ sideBar <- function(input, output, session) {
   })
 }
 
-# mainPanel <- function(input, output, session, mainTable){
-#   selectChoices <-
-#     reactiveValues(data = list(
-#       "Class" = 1,
-#       "Question" = 2,
-#       "Answer" = 3
-#     )
-#   )
+contentPanel <- function(input, output, session){
+  mainTable <- reactiveValues(data = NULL)
+  mainPlot <- reactiveValues(data = NULL)
+  tableData <- reactiveValues(data = NULL)
   
-#   dateTimeConcepts <- eventReactive(input$inTabPanel,{
-#       if(input$inTabPanel=="Search"){
-#         getDateTimeConcepts()
-#       }
-#   })
+  callModule(searchTab, "search", mainTable)
+  callModule(barChartTab, "barChart", mainTable, tableData, mainPlot)
+  selectChoices <-
+    reactiveValues(data = list(
+      "Class" = 1,
+      "Question" = 2,
+      "Answer" = 3
+    )
+  )
+  
+  dateTimeConcepts <- eventReactive(input$inTabPanel,{
+      if(input$inTabPanel=="Search"){
+        getDateTimeConcepts()
+      }
+  })
 
-#   observeEvent(input$inTabPanel, {
-#     if (input$inTabPanel == "Bar and Charts") {
-#       updateCheckboxGroupInput(
-#         session,
-#         "inDimensions",
-#         choices = names(mainTable$data),
-#         selected = NULL
-#       )
-#       updateSelectInput(
-#         session,
-#         "inCharts",
-#         choices = list(
-#           "Table" = 1,
-#           "Bar Chart" = 2,
-#           "Histogram" = 3,
-#           "Scatter Plot" = 4
-#         )
-#       )
+  observeEvent(input$inTabPanel, {
+    if (input$inTabPanel == "Bar and Charts") {
+      updateCheckboxGroupInput(
+        session,
+        "barChart-inDimensions",
+        choices = names(mainTable$data),
+        selected = NULL
+      )
+      updateSelectInput(
+        session,
+        "barChart-inCharts",
+        choices = list(
+          "Table" = 1,
+          "Bar Chart" = 2,
+          "Histogram" = 3,
+          "Scatter Plot" = 4
+        )
+      )
       
-#     }
-#     else{
-#       # Can also set the label and select items
-#       updateSelectInput(
-#         session,
-#         "inSelect",
-#         label = "",
-#         choices = selectChoices$data,
-#         selected = 2
-#       )
-#       updateSelectInput(session,
-#                         "inDateBy",
-#                         label = "Date Filter",
-#                         choices = dateTimeConcepts())
+    }
+    else{
+      # Can also set the label and select items
+      updateSelectInput(
+        session,
+        "search-inSelect",
+        label = "",
+        choices = selectChoices$data,
+        selected = 2
+      )
+      updateSelectInput(session,
+                        "search-inDateBy",
+                        label = "Date Filter",
+                        choices = dateTimeConcepts())
       
-#     }
-#   })
-# }
+    }
+  })
+}
 
 searchTab <- function(input, output, session, mainTable) {
   conceptsForSelection <- eventReactive(input$inSelect, {
     filterBy <- input$inSelect
     getConceptByType(filterBy)
   })
+
   conceptAnswers <- eventReactive(c(input$inCheckboxGroup,input$inSelect),{
     filterBy <- input$inSelect
     concepts <- input$inCheckboxGroup
@@ -97,15 +104,14 @@ searchTab <- function(input, output, session, mainTable) {
     dateRange <- as.character(input$inDateRange)
     conceptDates <- as.list(input$inDateBy)
     
-    concepts <- getConcepts(input)
+    concepts <- getConcepts()
     if (filterBy == 1) {
       #Concept class
       obs <-
         getObsForSelection(concepts, "class_id", listBy)
     } else if (filterBy == 2) {
       #Concept Name
-      obs <-
-        getObsForSelection(concepts, "concept_id", listBy)
+      obs <- getObsForSelection(concepts, "concept_id", listBy)
       answers <- as.list(input$inAnswers)
       if (!is.null(answers)) {
         if (length(answers) > 0) {
