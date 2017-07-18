@@ -7,14 +7,14 @@
 #                           "lazyeval","DescTools")
 #
 # remove.packages(pkgs_to_remove)
-install.packages('RMySQL', type = 'source')
+install.packages('RMySQL', type = 'source', repos="http://cran.rstudio.com/")
 if (!"properties" %in% rownames(installed.packages()))
-  install.packages("properties")
+  install.packages("properties", repos="http://cran.rstudio.com/")
 if (!"install.load" %in% rownames(installed.packages()))
-  install.packages("install.load")
+  install.packages("install.load", repos="http://cran.rstudio.com/")
 library(install.load)
 if (!"devtools" %in% rownames(installed.packages()))
-  install.packages("devtools")
+  install.packages("devtools", repos="http://cran.rstudio.com/")
 library(devtools)
 if (!"DBI" %in% rownames(installed.packages()))
   devtools::install_github("rstats-db/DBI")
@@ -49,12 +49,9 @@ sapply(pkgs_to_install_load, install_load)
 
 options(shiny.trace = F)
 
-source("ui.R")
+source("uiModules.R")
 source("dao.R")
 source("serverModules.R")
-
-observationTabNS <- "observation"
-barChartsTabNS <- "barChart"
 
 ui <- fluidPage(
   useShinyjs(),
