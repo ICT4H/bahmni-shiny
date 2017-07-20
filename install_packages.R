@@ -32,6 +32,9 @@ if (!"shiny" %in% rownames(installed.packages()))
     "shinyBS",
     "purrr",
     "lazyeval",
+    "rjson",
     "DescTools"
   )
-sapply(pkgs_to_install_load, install_load)
+lapply(pkgs_to_install_load, FUN = function(pkg){
+  install.packages(pkg, repos="http://cran.rstudio.com/")
+})

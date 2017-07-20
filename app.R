@@ -10,8 +10,8 @@
 library(install.load)
 library(DBI)
 library(shiny)
-#install the required packages
-pkgs_to_install_load <-
+#load the required packages
+pkgs_to_load <-
   c(
     "tidyr",
     "stringr",
@@ -29,9 +29,10 @@ pkgs_to_install_load <-
     "shinyBS",
     "purrr",
     "lazyeval",
+    "rjson",
     "DescTools"
   )
-sapply(pkgs_to_install_load, install_load)
+lapply(pkgs_to_load, library, character.only = TRUE)
 
 options(shiny.trace = F)
 
@@ -39,22 +40,42 @@ source("uiModules.R")
 source("dao.R")
 source("serverModules.R")
 
+buildPluginUI <- function(name) {
+    tabPanel(name,contentPanelUI(name))
+}
+
+
 ui <- fluidPage(
   useShinyjs(),
   titlePanel("Welcome!"),
-  navlistPanel(
-    "Observations",
-    tabPanel("Hypertension",contentPanelUI("hypertension")),
-    tabPanel("Diabetes",contentPanelUI("diabetes")),
-    "Tests",
-    tabPanel("RBC",contentPanelUI("rbc")),
-    widths = c(2,10)
-  )
+  uiOutput("pluginstab")
 )
 
-server <- function(input, output, session) {
-  callModule(contentPanel, "hypertension")
-  callModule(contentPanel, "diabetes")
+server <- function(input, output) {
+  tabnames <- list()
+  values <- list()
+  pathToPluginsFolder <- "/Users/mritunjd/Documents/projects/bahmni/bahmni-shiny/plugins"
+  files <- list.files(pathToPluginsFolder)
+  
+  lapply(files, FUN=function(file){
+    configFileName = paste(pathToPluginsFolder,"/",file,"/config.json",sep="")
+    config = fromJSON(file = configFileName)
+    tabnames <<- c(tabnames, config$name)
+    values <<- c(values, contentPanelUI(tolower(config$name)))
+  })
+  output$pluginstab <- renderUI({
+    myTabs <- list("Observation")
+    restTabs <- list("Tests",tabPanel("RBC",contentPanelUI("rbc")),widths = c(2,10))
+    pluginTabs <- tabnames %>% map2(values, function(.x, .y){
+      tabPanel(.x, .y)
+    })
+    myTabs <- c(myTabs, pluginTabs, restTabs)
+    do.call(navlistPanel, myTabs)
+  })
+  
+  lapply(tabnames, FUN = function(tabname){
+    callModule(contentPanel, tolower(tabname))
+  })
   callModule(contentPanel, "rbc")
 }
 

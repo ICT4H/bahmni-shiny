@@ -1,10 +1,12 @@
 contentPanelUI <- function(id){
   ns <- NS(id)
-  tabsetPanel(
-    id=ns("inTabPanel"),
-    tabPanel("Search", searchTabUI(ns("search"))),
-    tabPanel("Bar and Charts", barChartTabUI(ns("barChart"))),
-    tabPanel("Dashboard")
+  tagList(
+    tabsetPanel(
+      id=ns("inTabPanel"),
+      tabPanel("Search", searchTabUI(ns("search"))),
+      tabPanel("Bar and Charts", barChartTabUI(ns("barChart"))),
+      tabPanel("Dashboard")
+    )
   )
 }
 
