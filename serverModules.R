@@ -1,9 +1,3 @@
-sideBar <- function(input, output, session) {
-  observeEvent(input$inSave, {
-    cat("he was callled")
-  })
-}
-
 contentPanel <- function(input, output, session){
   mainTable <- reactiveValues(data = NULL)
   mainPlot <- reactiveValues(data = NULL)

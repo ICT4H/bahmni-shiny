@@ -12,7 +12,6 @@ localPort <- properties$localPort
 sshUsername <- properties$sshUsername
 
 sshTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localPort, ":localhost:3306 ", sshUsername, "@", host, " sleep 10", sep="")
-cat (sshTunnleCommand)
 system(sshTunnleCommand)
 
 getConnectionPool <- function() {

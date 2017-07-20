@@ -40,43 +40,58 @@ source("uiModules.R")
 source("dao.R")
 source("serverModules.R")
 
-buildPluginUI <- function(name) {
-    tabPanel(name,contentPanelUI(name))
+pluginUI <- function(id) {
+  ns <- NS(id)
+  tagList(
+    textOutput(ns("content"))
+  )
 }
 
+plugin <- function(input, output, session, data){
+  output$content <- renderText(do.call(paste,data))
+}
 
 ui <- fluidPage(
   useShinyjs(),
   titlePanel("Welcome!"),
-  uiOutput("pluginstab")
+  uiOutput("tabs")
 )
 
 server <- function(input, output) {
-  tabnames <- list()
-  values <- list()
+  pluginTabs <- list()
   pathToPluginsFolder <- "/Users/mritunjd/Documents/projects/bahmni/bahmni-shiny/plugins"
   files <- list.files(pathToPluginsFolder)
   
   lapply(files, FUN=function(file){
-    configFileName = paste(pathToPluginsFolder,"/",file,"/config.json",sep="")
-    config = fromJSON(file = configFileName)
-    tabnames <<- c(tabnames, config$name)
-    values <<- c(values, contentPanelUI(tolower(config$name)))
+    configFileName <- paste(pathToPluginsFolder,"/",file,"/config.json",sep="")
+    daoFileName <- paste(pathToPluginsFolder,"/",file,"/dao.R",sep="")
+    config <- fromJSON(file = configFileName)
+    envir <- new.env()
+    source(daoFileName,local=envir)
+    data <- envir$fetchData(pool)
+    envir <- NULL
+    tabInfo <- list()
+    tabInfo$name <- config$name
+    tabInfo$ui <- pluginUI(tolower(config$name))
+    tabInfo$data <- data
+    
+    pluginTabs <<- c(pluginTabs, list(tabInfo))
   })
-  output$pluginstab <- renderUI({
+
+  output$tabs <- renderUI({
     myTabs <- list("Observation")
-    restTabs <- list("Tests",tabPanel("RBC",contentPanelUI("rbc")),widths = c(2,10))
-    pluginTabs <- tabnames %>% map2(values, function(.x, .y){
-      tabPanel(.x, .y)
+    restTabs <- list("Search",tabPanel("Observations",contentPanelUI("observations")),widths = c(2,10))
+    newTabs <- lapply(pluginTabs,FUN = function(tab){
+      tabPanel(tab$name, tab$ui)
     })
-    myTabs <- c(myTabs, pluginTabs, restTabs)
+    myTabs <- c(myTabs, newTabs, restTabs)
     do.call(navlistPanel, myTabs)
   })
-  
-  lapply(tabnames, FUN = function(tabname){
-    callModule(contentPanel, tolower(tabname))
+  print(pluginTabs)
+  lapply(pluginTabs, FUN = function(pluginTab){
+    # callModule(plugin, tolower(pluginTab$name), pluginTab$data)
   })
-  callModule(contentPanel, "rbc")
+  callModule(contentPanel, "observations")
 }
 
 shinyApp(ui = ui, server = server)
