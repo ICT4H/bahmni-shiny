@@ -60,12 +60,16 @@ fetchData <- function(pool, startDate, endDate) {
   obsForVariables <- allObsForCholeraPatients %>%
     inner_join(conceptNames, by = c("concept_id"="conceptid")) %>%  
     select(person_id,value_numeric, name) %>% 
+    inner_join(patients, by = c("person_id"="person_id")) %>%
+    select(person_id, Age, Gender, name, value_numeric) %>%
     collect(n = Inf)
 
-  print(patientWithObs)
-  print(conceptNames)
+  obsForVariables <- obsForVariables %>% 
+    gather(Key, Value, starts_with("value_numeric")) %>%
+    select(-Key) %>%
+    spread(name, Value)
+
   print(obsForVariables)
-    
   columns <- c(pull(patients,person_id), pull(patients,Gender),pull(patients,Age))
   dbOutput <- append(dbOutput, setNames(columns, c("PatientId", "Gender", "Age")))
 }
