@@ -43,12 +43,31 @@ source("serverModules.R")
 pluginUI <- function(id) {
   ns <- NS(id)
   tagList(
-    textOutput(ns("content"))
+    fluidRow(
+      column(4,
+        dateRangeInput(ns("inPeriod"),
+          label = 'Period',
+          start = Sys.Date() - 30,
+          end = Sys.Date()
+        )
+      ),
+      column(4, actionButton(ns("inApply"), "Apply")
+      )
+    ),
+    tableOutput(ns("content"))
   )
 }
 
-plugin <- function(input, output, session, data){
-  output$content <- renderText(do.call(paste,data))
+plugin <- function(input, output, session, dataSourceFile){
+  mainTable <- reactiveValues(data = NULL)
+  observeEvent(input$inApply, {
+    period <- as.character(input$inPeriod)
+    envir <- new.env()
+    source(dataSourceFile,local=envir)
+    mainTable$data <- envir$fetchData(pool, ymd(period[1]), ymd(period[2]))
+    envir <- NULL
+    output$content <- renderTable(mainTable$data)
+  })
 }
 
 ui <- fluidPage(
@@ -66,15 +85,10 @@ server <- function(input, output) {
     configFileName <- paste(pathToPluginsFolder,"/",file,"/config.json",sep="")
     daoFileName <- paste(pathToPluginsFolder,"/",file,"/dao.R",sep="")
     config <- fromJSON(file = configFileName)
-    envir <- new.env()
-    source(daoFileName,local=envir)
-    data <- envir$fetchData(pool)
-    envir <- NULL
     tabInfo <- list()
     tabInfo$name <- config$name
     tabInfo$ui <- pluginUI(tolower(config$name))
-    tabInfo$data <- data
-    
+    tabInfo$dataSourceFile <- daoFileName
     pluginTabs <<- c(pluginTabs, list(tabInfo))
   })
 
@@ -87,9 +101,8 @@ server <- function(input, output) {
     myTabs <- c(myTabs, newTabs, restTabs)
     do.call(navlistPanel, myTabs)
   })
-  print(pluginTabs)
   lapply(pluginTabs, FUN = function(pluginTab){
-    # callModule(plugin, tolower(pluginTab$name), pluginTab$data)
+     callModule(plugin, tolower(pluginTab$name), pluginTab$dataSourceFile)
   })
   callModule(contentPanel, "observations")
 }

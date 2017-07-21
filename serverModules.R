@@ -125,11 +125,10 @@ searchTab <- function(input, output, session, mainTable) {
                obs_datetime <= ymd(dateRange[2]))
     } else{
       #Concept Date
-      obs <- filterObsByDateConcept(obs, conceptDates)
+      obs <- filterObsByDateConcept(obs, conceptDates, dateRange)
     }
     patIdentifiers <- getPatientIdentifiers()
     personDemographics <- getPersonDemographics()
-    
     obs <- obs %>%
       inner_join(personDemographics, by = c("person_id" = "person_id")) %>%
       inner_join(patIdentifiers, by = c("person_id" = "patient_id")) %>%

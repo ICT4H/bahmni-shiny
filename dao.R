@@ -135,7 +135,7 @@ mapObsWithConceptNames <- function(obs, conceptNames) {
            obs_group_id = as.factor(obs_group_id))
 }
 
-filterObsByDateConcept <- function(obs, conceptDates) {
+filterObsByDateConcept <- function(obs, conceptDates, dateRange) {
   obs_dt <- pool %>% 
     tbl("obs") %>% 
     filter(voided==0, concept_id %in% conceptDates) %>% 
