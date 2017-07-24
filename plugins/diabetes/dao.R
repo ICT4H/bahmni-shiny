@@ -43,6 +43,18 @@ fetchData <- function(pool, startDate, endDate) {
     mutate(Age = age(from=birthdate, to=Sys.Date())) %>% 
     select(-birthdate)
 
+  personAddresses <- pool %>%
+    tbl("person_address") %>%
+    filter(voided==0, person_id %in% personIds) %>%
+    select(person_id,county_district,state_province) %>%
+    collect(n=Inf)
+
+  patient <- patients %>%
+    inner_join(personAddresses, by = c("person_id"="person_id")) %>%
+    rename(District = county_district) %>%
+    rename(State = state_province) %>%
+    collect(n=Inf)
+
   allObsForCholeraPatients <- pool %>%
     tbl("obs") %>%
     filter(voided==0, person_id %in% personIds) %>%
@@ -56,20 +68,20 @@ fetchData <- function(pool, startDate, endDate) {
     rename(conceptid = concept_id) %>%
     collect(n=Inf) 
 
-
   obsForVariables <- allObsForCholeraPatients %>%
     inner_join(conceptNames, by = c("concept_id"="conceptid")) %>%  
-    select(person_id,value_numeric, name) %>% 
+    select(person_id,value_numeric, name, obs_datetime) %>% 
     inner_join(patients, by = c("person_id"="person_id")) %>%
-    select(person_id, Age, Gender, name, value_numeric) %>%
+    select(person_id, Age, Gender, name, value_numeric, obs_datetime) %>%
+    rename(ID=person_id) %>%
+    group_by(name,ID) %>%
+    filter(obs_datetime == max(obs_datetime)) %>%
     collect(n = Inf)
 
   obsForVariables <- obsForVariables %>% 
     gather(Key, Value, starts_with("value_numeric")) %>%
-    select(-Key) %>%
+    select(-Key, -obs_datetime) %>%
     spread(name, Value)
-
-  print(obsForVariables)
-  columns <- c(pull(patients,person_id), pull(patients,Gender),pull(patients,Age))
-  dbOutput <- append(dbOutput, setNames(columns, c("PatientId", "Gender", "Age")))
+  
+  obsForVariables
 }
