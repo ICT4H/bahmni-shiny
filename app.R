@@ -39,36 +39,8 @@ options(shiny.trace = F)
 source("uiModules.R")
 source("dao.R")
 source("serverModules.R")
-
-pluginUI <- function(id) {
-  ns <- NS(id)
-  tagList(
-    fluidRow(
-      column(4,
-        dateRangeInput(ns("inPeriod"),
-          label = 'Period',
-          start = Sys.Date() - 30,
-          end = Sys.Date()
-        )
-      ),
-      column(4, actionButton(ns("inApply"), "Apply")
-      )
-    ),
-    tableOutput(ns("content"))
-  )
-}
-
-plugin <- function(input, output, session, dataSourceFile){
-  mainTable <- reactiveValues(data = NULL)
-  observeEvent(input$inApply, {
-    period <- as.character(input$inPeriod)
-    envir <- new.env()
-    source(dataSourceFile,local=envir)
-    mainTable$data <- envir$fetchData(pool, ymd(period[1]), ymd(period[2]))
-    envir <- NULL
-    output$content <- renderTable(mainTable$data)
-  })
-}
+source("pluginServer.R")
+source("pluginUI.R")
 
 ui <- fluidPage(
   useShinyjs(),
