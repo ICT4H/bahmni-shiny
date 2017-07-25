@@ -88,8 +88,6 @@ fetchData <- function(pool, startDate, endDate) {
     select(ID,name,obs_datetime,value_numeric, Age, State, District, Gender) %>%
     collect(n = Inf)
 
-  print(obsForVariables)
-
   obsForVariables <- obsForVariables %>% 
     gather(Key, Value, starts_with("value_numeric")) %>%
     select(-Key, -obs_datetime) %>%

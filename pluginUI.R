@@ -51,6 +51,13 @@ pluginSearchTabUI <- function(id) {
               id = ns("inCollapseAddCols"),
               bsCollapsePanel(
                 "Add Columns",
+                fluidRow(column(3,
+                    textInput(ns("inGroupName"), "New Column Name", value="")
+                  ),
+                  column(3,
+                    checkboxInput(ns("inTwoVariables"), "Using Two Variables", value = F)
+                  )
+                ),
                 fluidRow(
                   column(4,
                          selectizeInput(
@@ -61,13 +68,31 @@ pluginSearchTabUI <- function(id) {
                                         "")),
                   column(2,
                          numericInput(ns("inEndRange"), "End", value =
+                                        ""))
+                ),
+                conditionalPanel(
+                    condition = paste("input[['", id, "-inTwoVariables']]==1", sep = ""),
+                    fluidRow(
+                      column(4,
+                         selectizeInput(
+                           ns("inNumericColsOther"), "Numeric Columns:", choices = c("")
+                         )),
+                      column(2,
+                         numericInput(ns("inStartRangeOther"), "Start", value =
                                         "")),
                   column(2,
+                         numericInput(ns("inEndRangeOther"), "End", value =
+                                        ""))
+                      )
+                ),
+                fluidRow(
+                  column(2,
                          textInput(ns("inLevelName"), "Name", value =
-                                     "")),
-                  column(1,
+                                     "")
+                  ),
+                  column(2,
                          actionButton(
-                           ns("inAddLevel"), label = "+", class = 'btnbottomAlign'
+                           ns("inAddLevel"), label = "Add Level", class = 'btnbottomAlign'
                          ))
                 ),
                 fluidRow(column(

@@ -91,6 +91,8 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
     }
     updateNumericInput(session, "inStartRange", value = "")
     updateNumericInput(session, "inEndRange", value = "")
+    updateNumericInput(session, "inStartRangeOther", value = "")
+    updateNumericInput(session, "inEndRangeOther", value = "")
     updateSelectizeInput(session, "inCatLevels", choices = c(""))
     updateTextInput(session, "inLevelName", value = "")
   })
@@ -142,14 +144,18 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
   )
   #Add Categorical Columns
   observeEvent(input$inCollapseAddCols, {
-    if (input$inCollapseAddCols == "Add Columns") {
+    # if (input$inCollapseAddCols == "Add Columns") {
       numericColumns <- names(mainTable$data)[mainTable$data %>%
                                                 map_lgl(is.numeric)]
       updateSelectizeInput(session,
                            "inNumericCols",
                            choices = numericColumns,
                            selected = NULL)
-    }
+      updateSelectizeInput(session,
+                           "inNumericColsOther",
+                           choices = numericColumns,
+                           selected = NULL)
+    # }
   })
   catColumns <- reactiveValues(data = list())
   #Addlevel to a column
@@ -158,7 +164,9 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
       "Name" = input$inLevelName,
       "Range" = c(
         "From" = as.numeric(input$inStartRange),
-        "To" = as.numeric(input$inEndRange)
+        "To" = as.numeric(input$inEndRange),
+        "FromOther" = as.numeric(input$inStartRangeOther),
+        "ToOther" = as.numeric(input$inEndRangeOther)
       )
     )
     catColumns$data[[length(catColumns$data) + 1]] = newlevel
@@ -166,37 +174,34 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
     updateSelectizeInput(session, "inCatLevels", choices = levelnames)
     updateNumericInput(session, "inStartRange", value = "")
     updateNumericInput(session, "inEndRange", value = "")
+    updateNumericInput(session, "inStartRangeOther", value = "")
+    updateNumericInput(session, "inEndRangeOther", value = "")
     updateTextInput(session, "inLevelName", value = "")
   })
   
   #Mutate to add new categorical column to dataframe
   observeEvent(input$inApplyColumn, {
-    colNameToBeGrouped <- input$inNumericCols
-    newColName <- paste(colNameToBeGrouped, "Group", sep = ".")
-    mutate_call <-
-      lazyeval::interp( ~ a , a = as.name(colNameToBeGrouped))
-    mainTable$data <-
-      mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), newColName))
-    
+    columnName  <- input$inGroupName
     levelnames <- catColumns$data %>% map_chr("Name")
     ranges <- catColumns$data %>% map("Range")
-    df_list <- levelnames %>% map2(.y = ranges, function(x, y, df) {
-      mutate_call_ip <-
-        lazyeval::interp( ~ ifelse(a >= y[[1]] & a <= y[[2]], x[[1]], NA) ,
-                          a = as.name(newColName))
-      df <-
-        df %>% mutate_(.dots = setNames(list(mutate_call_ip), newColName))
-    }, df = mainTable$data) %>% map(function(x) {
+    
+    if(input$inTwoVariables){
+      df_list <- deriveWithTwoVars(input, mainTable, levelnames, ranges)
+    }else{
+      df_list <- deriveWithOneVar(input, mainTable, levelnames, ranges)
+    }
+
+    df_list <- df_list %>% map(function(x) {
       filter_criteria <-
-        lazyeval::interp( ~ !is.na(a), a = as.name(newColName))
+        lazyeval::interp( ~ !is.na(a), a = as.name(columnName))
       x %>% filter_(.dots = filter_criteria)
     })
     mainTable$data <- bind_rows(df_list)
     
     mutate_call <-
-      lazyeval::interp( ~ as.factor(a) , a = as.name(newColName))
+      lazyeval::interp( ~ as.factor(a) , a = as.name(columnName))
     mainTable$data <-
-      mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), newColName))
+      mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), columnName))
     
     output$obsDT <- DT::renderDataTable(
       mainTable$data,
@@ -207,4 +212,40 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
     updateSelectizeInput(session, "inCatLevels", choices = c(""))
     catColumns$data <- list()
   })
+}
+
+deriveWithOneVar <- function(input, mainTable, levelnames, ranges) {
+  columnName  <- input$inGroupName
+  firstColName <- input$inNumericCols
+  mutate_call <- lazyeval::interp( ~ a , a = as.name(firstColName))
+  mainTable$data <-
+    mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), firstColName))
+
+  levelnames %>% map2(.y = ranges, function(x, y, df) {
+    mutate_call_ip <- lazyeval::interp( ~ ifelse(a >= y[[1]] & a <= y[[2]] , x[[1]], NA) ,
+                        a = as.name(firstColName))
+    df <-
+      df %>% mutate_(.dots = setNames(list(mutate_call_ip), columnName))
+  }, df = mainTable$data)
+}
+
+deriveWithTwoVars <- function(input, mainTable, levelnames, ranges) {
+  columnName  <- input$inGroupName
+  firstColName <- input$inNumericCols
+  secondColName <- input$inNumericColsOther
+  
+  mutate_call <- lazyeval::interp( ~ a , a = as.name(firstColName))
+  mainTable$data <-
+    mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), firstColName))
+
+  mutate_call <- lazyeval::interp( ~ a , a = as.name(secondColName))
+  mainTable$data <-
+    mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), secondColName))
+
+  levelnames %>% map2(.y = ranges, function(x, y, df) {
+    mutate_call_ip <- lazyeval::interp( ~ ifelse(a >= y[[1]] & a <= y[[2]] & b >= y[[3]] & b <= y[[4]] , x[[1]], NA) ,
+                        a = as.name(firstColName), b = as.name(secondColName))
+    df <-
+      df %>% mutate_(.dots = setNames(list(mutate_call_ip), columnName))
+  }, df = mainTable$data)
 }
