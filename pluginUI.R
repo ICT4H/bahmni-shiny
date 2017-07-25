@@ -51,40 +51,26 @@ pluginSearchTabUI <- function(id) {
               id = ns("inCollapseAddCols"),
               bsCollapsePanel(
                 "Add Columns",
-                fluidRow(column(3,
-                    textInput(ns("inGroupName"), "New Column Name", value="")
+                fluidRow(
+                  column(3,
+                    selectInput(ns("inDatatype"), "DataType", choices=c(
+                      Numeric = 1,
+                      Datetime = 2
+                      ), selected = 1
+                    )
                   ),
                   column(3,
-                    checkboxInput(ns("inTwoVariables"), "Using Two Variables", value = F)
+                    textInput(ns("inGroupName"), "New Column Name", value="")
+                  ),
+                  conditionalPanel(
+                    condition = paste("input[['", id, "-inDatatype']]==1", sep = ""),
+                    column(3,
+                      checkboxInput(ns("inTwoVariables"), "Using Two Variables", value = F)
+                    )
                   )
                 ),
-                fluidRow(
-                  column(4,
-                         selectizeInput(
-                           ns("inNumericCols"), "Numeric Columns:", choices = c("")
-                         )),
-                  column(2,
-                         numericInput(ns("inStartRange"), "Start", value =
-                                        "")),
-                  column(2,
-                         numericInput(ns("inEndRange"), "End", value =
-                                        ""))
-                ),
-                conditionalPanel(
-                    condition = paste("input[['", id, "-inTwoVariables']]==1", sep = ""),
-                    fluidRow(
-                      column(4,
-                         selectizeInput(
-                           ns("inNumericColsOther"), "Numeric Columns:", choices = c("")
-                         )),
-                      column(2,
-                         numericInput(ns("inStartRangeOther"), "Start", value =
-                                        "")),
-                  column(2,
-                         numericInput(ns("inEndRangeOther"), "End", value =
-                                        ""))
-                      )
-                ),
+                uiForNumericVariables(id, ns),
+                uiForDateTimeVariables(id, ns),
                 fluidRow(
                   column(2,
                          textInput(ns("inLevelName"), "Name", value =
@@ -113,6 +99,50 @@ pluginSearchTabUI <- function(id) {
           downloadButton(ns("downloadData"), 'Download')
         )
       )
+    )
+  )
+}
+
+uiForDateTimeVariables <- function(id, ns){
+  conditionalPanel(
+    condition = paste("input[['", id, "-inDatatype']]==2", sep = ""),
+    fluidRow(
+      column(4, selectizeInput(ns("inDateCols"), "DateTime Columns:", choices=c(""))
+      ),
+      column(3, dateInput(ns("inAfterDate"), "After"))
+    )
+  )
+}
+
+uiForNumericVariables <- function(id, ns){
+    conditionalPanel(
+    condition = paste("input[['", id, "-inDatatype']]==1", sep = ""),
+    fluidRow(
+      column(4,
+             selectizeInput(
+               ns("inNumericCols"), "Numeric Columns:", choices = c("")
+             )),
+      column(2,
+             numericInput(ns("inStartRange"), "Start", value =
+                            "")),
+      column(2,
+             numericInput(ns("inEndRange"), "End", value =
+                            ""))
+    ),
+    conditionalPanel(
+        condition = paste("input[['", id, "-inTwoVariables']]==1", sep = ""),
+        fluidRow(
+          column(4,
+             selectizeInput(
+               ns("inNumericColsOther"), "Numeric Columns:", choices = c("")
+             )),
+          column(2,
+             numericInput(ns("inStartRangeOther"), "Start", value =
+                            "")),
+      column(2,
+             numericInput(ns("inEndRangeOther"), "End", value =
+                            ""))
+          )
     )
   )
 }

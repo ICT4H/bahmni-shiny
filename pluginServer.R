@@ -144,9 +144,18 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
   )
   #Add Categorical Columns
   observeEvent(input$inCollapseAddCols, {
-    # if (input$inCollapseAddCols == "Add Columns") {
-      numericColumns <- names(mainTable$data)[mainTable$data %>%
-                                                map_lgl(is.numeric)]
+    if (!is.null(mainTable$data)) {
+      isDate <- function(mydate){
+        tryCatch({
+            is.Date(as.Date(mydate))},
+             error = function(err){FALSE}
+        )
+      } 
+      isNumericColumn <- mainTable$data %>% map_lgl(is.numeric)
+      numericColumns <- names(mainTable$data)[isNumericColumn]
+      dateColumns <- names(mainTable$data)[mainTable$data %>%
+                                                map_lgl(isDate)]
+      
       updateSelectizeInput(session,
                            "inNumericCols",
                            choices = numericColumns,
@@ -155,7 +164,11 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
                            "inNumericColsOther",
                            choices = numericColumns,
                            selected = NULL)
-    # }
+      updateSelectizeInput(session,
+                           "inDateCols",
+                           choices = dateColumns,
+                           selected = NULL)
+    }
   })
   catColumns <- reactiveValues(data = list())
   #Addlevel to a column

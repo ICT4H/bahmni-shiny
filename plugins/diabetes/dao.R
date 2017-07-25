@@ -90,7 +90,7 @@ fetchData <- function(pool, startDate, endDate) {
 
   obsForVariables <- obsForVariables %>% 
     gather(Key, Value, starts_with("value_numeric")) %>%
-    select(-Key, -obs_datetime) %>%
+    select(-Key) %>%
     spread(name, Value)
   
   obsForVariables
