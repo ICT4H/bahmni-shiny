@@ -109,7 +109,7 @@ uiForDateTimeVariables <- function(id, ns){
     fluidRow(
       column(4, selectizeInput(ns("inDateCols"), "DateTime Columns:", choices=c(""))
       ),
-      column(3, dateInput(ns("inAfterDate"), "After"))
+      column(3, dateInput(ns("inDaysStart"), "After"))
     )
   )
 }

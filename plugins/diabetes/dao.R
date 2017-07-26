@@ -55,14 +55,25 @@ fetchData <- function(pool, startDate, endDate) {
     select(patient_id, identifier) %>% 
     collect(n=Inf)
 
+  #Block Below need to be modified when we have an idea
+  #about filters for visit_type and obs_relation 
+
+  patientVisitDates <- pool %>% 
+    tbl("visit") %>% 
+    filter(voided==0, patient_id %in% personIds) %>% 
+    group_by(patient_id) %>%
+    summarise(date_started = max(date_started)) %>%
+    select(patient_id, date_started) %>%
+    rename(visitDate = date_started) %>%
+    collect(n=Inf)
+
   patients <- patients %>%
     inner_join(personAddresses, by = c("person_id"="person_id")) %>%
     rename(District = county_district) %>%
     rename(State = state_province) %>%
     inner_join(patientIdentifiers, by = c("person_id"="patient_id")) %>%
-    select(person_id,identifier, District, State, Age, Gender) %>% 
+    inner_join(patientVisitDates, by = c("person_id"="patient_id")) %>%
     collect(n=Inf)
-
 
   allObsForCholeraPatients <- pool %>%
     tbl("obs") %>%
@@ -82,15 +93,14 @@ fetchData <- function(pool, startDate, endDate) {
     inner_join(patients, by = c("person_id"="person_id")) %>%
     rename(ID=identifier) %>%
     group_by(name,person_id) %>%
-    select(ID,name,obs_datetime,value_numeric, Age, State, District, Gender) %>%
     filter(obs_datetime == max(obs_datetime)) %>%
     ungroup() %>%
-    select(ID,name,obs_datetime,value_numeric, Age, State, District, Gender) %>%
+    select(ID,name,obs_datetime,value_numeric, Age, State, District, Gender, visitDate) %>%
     collect(n = Inf)
 
   obsForVariables <- obsForVariables %>% 
     gather(Key, Value, starts_with("value_numeric")) %>%
-    select(-Key) %>%
+    select(-Key, -obs_datetime) %>%
     spread(name, Value)
   
   obsForVariables

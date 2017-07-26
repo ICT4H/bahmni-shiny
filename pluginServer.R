@@ -180,7 +180,8 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
         "To" = as.numeric(input$inEndRange),
         "FromOther" = as.numeric(input$inStartRangeOther),
         "ToOther" = as.numeric(input$inEndRangeOther)
-      )
+      ),
+      "AfterDate" = input$inAfterDate
     )
     catColumns$data[[length(catColumns$data) + 1]] = newlevel
     levelnames <- catColumns$data %>% map_chr("Name")
@@ -194,14 +195,20 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
   
   #Mutate to add new categorical column to dataframe
   observeEvent(input$inApplyColumn, {
+    datatype <- input$inDatatype
     columnName  <- input$inGroupName
     levelnames <- catColumns$data %>% map_chr("Name")
-    ranges <- catColumns$data %>% map("Range")
     
-    if(input$inTwoVariables){
-      df_list <- deriveWithTwoVars(input, mainTable, levelnames, ranges)
+    if(datatype == 1){
+      ranges <- catColumns$data %>% map("Range")
+      if(input$inTwoVariables){
+        df_list <- deriveWithTwoVarsNumeric(input, mainTable, levelnames, ranges)
+      }else{
+        df_list <- deriveWithOneVarNumeric(input, mainTable, levelnames, ranges)
+      }      
     }else{
-      df_list <- deriveWithOneVar(input, mainTable, levelnames, ranges)
+      dates <- catColumns$data %>% map("AfterDate")
+      df_list <- deriveWithDateVariable(input, mainTable, levelnames, dates)
     }
 
     df_list <- df_list %>% map(function(x) {
@@ -227,7 +234,21 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
   })
 }
 
-deriveWithOneVar <- function(input, mainTable, levelnames, ranges) {
+deriveWithDateVariable <- function(input, mainTable, levelnames, dates) {
+  columnName  <- input$inGroupName
+  dateColumn <- input$inDateCols
+  mutate_call <- lazyeval::interp( ~ a , a = as.name(dateColumn))
+  mainTable$data <- mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), dateColumn))
+
+  levelnames %>% map2(.y = dates, function(x, y, df) {
+    mutate_call_ip <- lazyeval::interp( ~ ifelse(as.Date(a) >= y[[1]] & as.Date(a) <= Sys.Date()+1, x[[1]], NA) ,
+                        a = as.name(dateColumn))
+    df <-
+      df %>% mutate_(.dots = setNames(list(mutate_call_ip), columnName))
+  }, df = mainTable$data)
+}
+
+deriveWithOneVarNumeric <- function(input, mainTable, levelnames, ranges) {
   columnName  <- input$inGroupName
   firstColName <- input$inNumericCols
   mutate_call <- lazyeval::interp( ~ a , a = as.name(firstColName))
@@ -242,7 +263,7 @@ deriveWithOneVar <- function(input, mainTable, levelnames, ranges) {
   }, df = mainTable$data)
 }
 
-deriveWithTwoVars <- function(input, mainTable, levelnames, ranges) {
+deriveWithTwoVarsNumeric <- function(input, mainTable, levelnames, ranges) {
   columnName  <- input$inGroupName
   firstColName <- input$inNumericCols
   secondColName <- input$inNumericColsOther
