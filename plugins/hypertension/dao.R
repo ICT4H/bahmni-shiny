@@ -13,8 +13,8 @@ age <- function(from, to) {
 
 fetchData <- function(pool, startDate, endDate) {
   dbOutput <- list()
-  variablesToFetch <- list("BMI", "Systolic blood pressure",
-                           "Diastolic blood pressure")
+  variablesToFetch <- list("BMI", "Systolic",
+                           "Diastolic")
 
   hypertensionConceptId <- pool %>%
      tbl("concept_name") %>%
@@ -120,11 +120,13 @@ fetchData <- function(pool, startDate, endDate) {
     inner_join(patients, by = c("person_id"="person_id")) %>%
     inner_join(patientVisits, by=c("encounter_id"="encounter_id")) %>%
     group_by(visit_id, patient_id, concept_id) %>%
-    filter(obs_datetime == max(obs_datetime)) %>%
+    filter(obs_datetime == max(obs_datetime), row_number() == 1) %>%
     ungroup() %>%
     rename(ID=identifier) %>%
     select(ID,name,obs_datetime,value_numeric, Age, State, District, Gender, visitDate) %>%
     collect(n = Inf)
+
+  write.csv(obsForVariables, "./abc.csv")
 
   obsForVariables <- obsForVariables %>% 
     gather(Key, Value, starts_with("value_numeric")) %>%

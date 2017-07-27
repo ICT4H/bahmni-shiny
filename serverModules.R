@@ -399,6 +399,7 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
     chartOption <- input$inCharts
     grp_cols <- input$inDimensions
     obs <- mainTable$data
+    obs <- obs %>% distinct(ID, .keep_all = TRUE)
     dots <- lapply(grp_cols, as.symbol)
     if (chartOption == 1) {
       tableop <- ftable(droplevels(obs[grp_cols]))
