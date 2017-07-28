@@ -412,23 +412,9 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
         names <- unique(obs[grp_cols])
         obs$visitDate <- strftime(obs$visitDate, format="%b-%y")
         chartData <- obs %>% group_by_(.dots = c(grp_cols, "visitDate")) %>% summarise(total = n())
-        print(chartData)
-        ggplot(chartData, aes(visitDate, total, fill = Gender)) +
+        ggplot(chartData, aes_string("visitDate", "total", fill = grp_cols[1])) +
           geom_bar(stat="identity", position = "dodge") +
             scale_fill_brewer(palette = "Set1")
-        
-        
-        # barplot(as.matrix(chartData),
-        #  names.args = names,
-        #   xlab="Month",
-        #   ylab="Number of Patiets",
-        #   legend.text = TRUE
-        # )
-        # bar_1 <- obs %>% ggplot(aes_string(grp_cols[1]))
-        # bar_1 <- bar_1 +  geom_bar()
-        # mainPlot$data <-
-        #   bar_1 + theme(axis.text.x = element_text(angle = 90, hjust = 1))
-        # mainPlot$data
       })
       selectedValue <- "Bar Chart"
     } else if (chartOption == 3) {

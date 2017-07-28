@@ -34,11 +34,39 @@ fetchData <- function(pool, startDate, endDate) {
     tbl("obs") %>% 
     filter(voided==0,
      value_coded == hypertensionConceptId,
-     concept_id == codedDiagnosisConceptId) %>% 
-    select(person_id, encounter_id, concept_id, obs_id, value_numeric) %>% 
+     concept_id == codedDiagnosisConceptId,
+     obs_datetime>=startDate,
+     obs_datetime<endDate) %>% 
+    select(person_id, encounter_id) %>% 
     collect(n = Inf)
 
+  if(nrow(patientWithHypertension) <= 0){
+    return (data.frame())
+  }
+
+  encIds <- pull(patientWithHypertension, encounter_id)
   personIds <- pull(patientWithHypertension, person_id)
+
+  hypertensionVisits <- pool %>%
+    tbl("encounter") %>%
+    filter(voided==0,
+     encounter_id %in% encIds) %>% 
+    select(visit_id, patient_id) %>%
+    collect(n=Inf)
+
+  visitIds <- pull(hypertensionVisits, visit_id)
+  visitDates <- pool %>%
+    tbl("visit") %>%
+    filter(voided==0, visit_id %in% visitIds) %>% 
+    select(date_started,visit_id) %>%
+    collect(n=Inf)
+
+  hypertensionVisits <- hypertensionVisits %>%
+    inner_join(visitDates, by=c("visit_id"="visit_id")) %>%
+    select(patient_id, date_started) %>%
+    rename(visitDate = date_started) %>%
+    collect(n=Inf)
+  
   patients <- pool %>%
     tbl("person") %>%
     filter(voided==0, person_id %in% personIds) %>%
@@ -61,46 +89,12 @@ fetchData <- function(pool, startDate, endDate) {
     select(patient_id, identifier) %>% 
     collect(n=Inf)
 
-  #Block Below need to be modified when we have an idea
-  #about filters for visit_type and obs_relation 
-
-  # visitsForHypertension <- pool %>%
-  #   tbl("encounter") %>%
-  #   filter(voided==0,
-  #     encounter_id %in% pull(patientWithHypertension, encounter_id)) %>%
-  #   select(visit_id) %>%
-  #   collect(n=Inf)
-
-  # encountersForHypertensionVisits <- pool %>%
-  #   tbl("encounter") %>%
-  #   filter(voided == 0,
-  #     visit_id %in% visitsForHypertension) %>%
-  #   select(encounter_id, visit_id) %>%
-  #   collect(n=Inf)
-  encounters <- pool %>%
-    tbl("encounter") %>%
-    filter(voided==0, patient_id %in% personIds) %>% 
-    select(patient_id, encounter_id, visit_id) %>%
-    rename(patientId=patient_id) %>%
-    collect(n=Inf)
-
-  visits <- pool %>%
-    tbl("visit") %>%
-    filter(voided==0, patient_id %in% personIds) %>% 
-    select(patient_id, visit_id, date_started) %>%
-    collect(n=Inf)
-
-  patientVisits <- encounters %>%
-    inner_join(visits, by=c("visit_id"="visit_id")) %>%
-    select(patient_id, encounter_id, visit_id, date_started) %>%
-    rename(visitDate = date_started) %>%
-    collect(n=Inf)
-
   patients <- patients %>%
     inner_join(personAddresses, by = c("person_id"="person_id")) %>%
     rename(District = county_district) %>%
     rename(State = state_province) %>%
     inner_join(patientIdentifiers, by = c("person_id"="patient_id")) %>%
+    inner_join(hypertensionVisits, by = c("person_id"="patient_id")) %>%
     collect(n=Inf)
 
   allObsForHypertensionPatients <- pool %>%
@@ -118,20 +112,23 @@ fetchData <- function(pool, startDate, endDate) {
   obsForVariables <- allObsForHypertensionPatients %>%
     inner_join(conceptNames, by = c("concept_id"="concept_id")) %>%  
     inner_join(patients, by = c("person_id"="person_id")) %>%
-    inner_join(patientVisits, by=c("encounter_id"="encounter_id")) %>%
-    group_by(visit_id, patient_id, concept_id) %>%
-    filter(obs_datetime == max(obs_datetime), row_number() == 1) %>%
+    group_by(person_id, concept_id) %>%
+    filter(obs_datetime == max(obs_datetime)) %>%
     ungroup() %>%
     rename(ID=identifier) %>%
-    select(ID,name,obs_datetime,value_numeric, Age, State, District, Gender, visitDate) %>%
+    select(ID,name,value_numeric, Age, State, District, Gender, visitDate) %>%
     collect(n = Inf)
 
-  write.csv(obsForVariables, "./abc.csv")
+    #This is to filter out incorrect data entries.
+    #Like Query below should return single row
+    #SELECT concept_id,encounter_id,value_numeric,obs_datetime FROM obs WHERE obs_id IN (7211637,7211653);
+    #This row says in single encounter same concept has been filled twice at same time
+    obsForVariables <- obsForVariables %>% distinct(ID,name, .keep_all = TRUE)
 
   obsForVariables <- obsForVariables %>% 
     gather(Key, Value, starts_with("value_numeric")) %>%
-    select(-Key, -obs_datetime) %>%
+    select(-Key) %>%
     spread(name, Value)
-  
+
   obsForVariables
 }
