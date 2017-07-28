@@ -76,7 +76,7 @@ server <- function(input, output) {
   lapply(pluginTabs, FUN = function(pluginTab){
      callModule(plugin, tolower(pluginTab$name), pluginTab$dataSourceFile)
   })
-  callModule(contentPanel, "observations")
+  # callModule(contentPanel, "observations")
 }
 
 shinyApp(ui = ui, server = server)

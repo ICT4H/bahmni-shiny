@@ -404,16 +404,31 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
     if (chartOption == 1) {
       tableop <- ftable(droplevels(obs[grp_cols]))
       tableData$data <- tableop
-      output$tableDF <- renderTable(as.matrix(tableop), rownames = T)
+      output$tableDF <- renderTable(matrix(tableop), rownames = T)
       selectedValue <- "Table"
     } else if (chartOption == 2) {
       #barchart
       output$barPlot <- renderPlot({
-        bar_1 <- obs %>% ggplot(aes_string(grp_cols[1]))
-        bar_1 <- bar_1 +  geom_bar()
-        mainPlot$data <-
-          bar_1 + theme(axis.text.x = element_text(angle = 90, hjust = 1))
-        mainPlot$data
+        names <- unique(obs[grp_cols])
+        obs$visitDate <- strftime(obs$visitDate, format="%b-%y")
+        chartData <- obs %>% group_by_(.dots = c(grp_cols, "visitDate")) %>% summarise(total = n())
+        print(chartData)
+        ggplot(chartData, aes(visitDate, total, fill = Gender)) +
+          geom_bar(stat="identity", position = "dodge") +
+            scale_fill_brewer(palette = "Set1")
+        
+        
+        # barplot(as.matrix(chartData),
+        #  names.args = names,
+        #   xlab="Month",
+        #   ylab="Number of Patiets",
+        #   legend.text = TRUE
+        # )
+        # bar_1 <- obs %>% ggplot(aes_string(grp_cols[1]))
+        # bar_1 <- bar_1 +  geom_bar()
+        # mainPlot$data <-
+        #   bar_1 + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+        # mainPlot$data
       })
       selectedValue <- "Bar Chart"
     } else if (chartOption == 3) {
