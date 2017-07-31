@@ -33,6 +33,7 @@ if (!"shiny" %in% rownames(installed.packages()))
     "purrr",
     "lazyeval",
     "rjson",
+    "ggmap",
     "DescTools"
   )
 lapply(pkgs_to_install_load, FUN = function(pkg){

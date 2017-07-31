@@ -30,6 +30,7 @@ pkgs_to_load <-
     "purrr",
     "lazyeval",
     "rjson",
+    "ggmap",
     "DescTools"
   )
 lapply(pkgs_to_load, library, character.only = TRUE)

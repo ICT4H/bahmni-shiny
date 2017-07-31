@@ -124,7 +124,7 @@ barChartTabUI <- function(id) {
               selectInput(
                 ns("inCharts"),
                 'Charts:',
-                choices = c("Table", "Bar Chart", "Histogram", "Scatter Plot"),
+                choices = c("Table", "Bar Chart", "Histogram", "Scatter Plot", "Map Plot"),
                 multiple = F
               ),
               checkboxInput(ns("inProportional"), "Proportional", value = F),
@@ -161,8 +161,13 @@ barChartTabUI <- function(id) {
                              brush = brushOpts(id = ns("scatter_brush"),
                                                resetOnNew = TRUE)
                            )
+                         ))),
+                tabPanel("Map Plot", 
+                          fluidRow(column(
+                           12,
+                           plotOutput(ns("mapPlot"))
                          )))
-              )
+                )
             ),
             uiOutput(ns("tableDownload")))
           ))
