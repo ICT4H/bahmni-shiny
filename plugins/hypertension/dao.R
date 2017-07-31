@@ -43,7 +43,6 @@ fetchData <- function(pool, startDate, endDate) {
   if(nrow(patientWithHypertension) <= 0){
     return (data.frame())
   }
-
   encIds <- pull(patientWithHypertension, encounter_id)
   personIds <- pull(patientWithHypertension, person_id)
 
@@ -123,8 +122,7 @@ fetchData <- function(pool, startDate, endDate) {
     #Like Query below should return single row
     #SELECT concept_id,encounter_id,value_numeric,obs_datetime FROM obs WHERE obs_id IN (7211637,7211653);
     #This row says in single encounter same concept has been filled twice at same time
-    obsForVariables <- obsForVariables %>% distinct(ID,name, .keep_all = TRUE)
-
+  obsForVariables <- obsForVariables %>% distinct(ID,name, .keep_all = TRUE)
   obsForVariables <- obsForVariables %>% 
     gather(Key, Value, starts_with("value_numeric")) %>%
     select(-Key) %>%

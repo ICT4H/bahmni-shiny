@@ -408,13 +408,32 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
       selectedValue <- "Table"
     } else if (chartOption == 2) {
       #barchart
+      if(length(grp_cols) > 1){
+        showModal(modalDialog(
+          "Bar Chart works with only one variable !"
+        ))
+        return()
+      }
       output$barPlot <- renderPlot({
         names <- unique(obs[grp_cols])
-        obs$visitDate <- strftime(obs$visitDate, format="%b-%y")
-        chartData <- obs %>% group_by_(.dots = c(grp_cols, "visitDate")) %>% summarise(total = n())
-        ggplot(chartData, aes_string("visitDate", "total", fill = grp_cols[1])) +
-          geom_bar(stat="identity", position = "dodge") +
-            scale_fill_brewer(palette = "Set1")
+        obs$month <- strftime(obs$visitDate, format="%b-%y")
+        chartData <- obs %>% group_by_(.dots = c(grp_cols, "month")) %>% summarise(total = n())
+        if(input$inProportional){
+          chartData <- chartData %>%
+            group_by(month) %>%
+            mutate(countT= sum(total)) %>%
+            group_by_(.dots = c(grp_cols[1])) %>%
+            mutate(percentage=round(100*total/countT,2))
+        
+          ggplot(chartData, aes_string("month", "percentage", fill = grp_cols[1])) +
+            geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
+            geom_text(data=chartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
+            scale_y_continuous(labels = dollar_format(suffix = "%", prefix = ""))  
+        }else{
+          ggplot(chartData, aes_string("month", "total", fill = grp_cols[1])) +
+            geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
+            geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5))
+        }
       })
       selectedValue <- "Bar Chart"
     } else if (chartOption == 3) {

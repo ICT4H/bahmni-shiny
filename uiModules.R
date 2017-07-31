@@ -127,6 +127,7 @@ barChartTabUI <- function(id) {
                 choices = c("Table", "Bar Chart", "Histogram", "Scatter Plot"),
                 multiple = F
               ),
+              checkboxInput(ns("inProportional"), "Proportional", value = F),
               actionButton(ns("inShow"), "Show")
             ),
             # Show a plot of the generated distribution
