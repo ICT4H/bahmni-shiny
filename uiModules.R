@@ -139,6 +139,10 @@ barChartTabUI <- function(id) {
                 tabPanel("Table",
                          tableOutput(ns("tableDF"))),
                 tabPanel("Bar Chart",
+                        fluidRow(column(
+                           12,
+                           checkboxInput(ns("inFlipVars"), "Flip Variables:", value = F)
+                         )),
                          fluidRow(column(
                            12,
                            plotOutput(ns("barPlot"))

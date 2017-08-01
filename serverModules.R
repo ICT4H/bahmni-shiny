@@ -518,6 +518,9 @@ showBarChart <- function(input,output,grp_cols,obs){
       group_by_(.dots = c(grp_cols)) %>%
       mutate(percentage=round(100*total/countT,2))
     if(length(grp_cols) == 2){
+      if(input$inFlipVars){
+        grp_cols = rev(grp_cols)
+      }
       if(input$inProportional){
         ggplot(prapotionalChartData, aes_string(grp_cols[1], "percentage", fill = grp_cols[2])) + 
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
@@ -532,6 +535,12 @@ showBarChart <- function(input,output,grp_cols,obs){
       }
     }
     else{
+      if(input$inFlipVars){
+        showModal(modalDialog(
+          "Flip is only possible when two variables are selected!"
+        ))
+        return()
+      }
       if(input$inProportional){         
         ggplot(prapotionalChartData, aes_string("year", "percentage", fill = grp_cols[1])) +
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
