@@ -49,7 +49,7 @@ ui <- fluidPage(
   uiOutput("tabs")
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   pluginTabs <- list()
   pathToPluginsFolder <- "/Users/mritunjd/Documents/projects/bahmni/bahmni-shiny/plugins"
   files <- list.files(pathToPluginsFolder)
@@ -76,6 +76,12 @@ server <- function(input, output) {
   })
   lapply(pluginTabs, FUN = function(pluginTab){
      callModule(plugin, tolower(pluginTab$name), pluginTab$dataSourceFile)
+  })
+  
+  session$onSessionEnded(function() {
+    all_cons <- dbListConnections(MySQL())
+    for(con in all_cons)
+      +  dbDisconnect(con)
   })
   # callModule(contentPanel, "observations")
 }
