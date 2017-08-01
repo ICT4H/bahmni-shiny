@@ -494,7 +494,7 @@ showGoogleMap <- function(output,grp_cols,obs){
   print(class(chartData[[grp_cols[[1]]]]))
   locs_geo <- geocode(chartData[[grp_cols[1]]])
   chartData <- cbind(chartData, locs_geo)
-  map <- qmap('Chhattisgarh', zoom = 10)
+  map <- qmap('Chhattisgarh', zoom = 8)
   output$mapPlot <- renderPlot({
     map +
       geom_point(data = chartData, aes(x = lon, y = lat, size = total))
@@ -502,9 +502,9 @@ showGoogleMap <- function(output,grp_cols,obs){
 }
 
 showBarChart <- function(input,output,grp_cols,obs){
-  if(length(grp_cols) > 1){
+  if(length(grp_cols) > 2){
     showModal(modalDialog(
-      "Bar Chart works with only one variable !"
+      "Bar Chart works with only one or two variables!"
     ))
     return()
   }
@@ -512,21 +512,36 @@ showBarChart <- function(input,output,grp_cols,obs){
     names <- unique(obs[grp_cols])
     obs$year <- strftime(obs$visitDate, format="%Y")
     chartData <- obs %>% group_by_(.dots = c(grp_cols, "year")) %>% summarise(total = n())
-    if(input$inProportional){
-      chartData <- chartData %>%
-        group_by(year) %>%
-        mutate(countT= sum(total)) %>%
-        group_by_(.dots = c(grp_cols[1])) %>%
-        mutate(percentage=round(100*total/countT,2))
-    
-      ggplot(chartData, aes_string("year", "percentage", fill = grp_cols[1])) +
-        geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
-        geom_text(data=chartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
-        scale_y_continuous(labels = dollar_format(suffix = "%", prefix = ""))  
-    }else{
-      ggplot(chartData, aes_string("year", "total", fill = grp_cols[1])) +
-        geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
-        geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5))
+    prapotionalChartData <- chartData %>%
+      group_by(year) %>%
+      mutate(countT= sum(total)) %>%
+      group_by_(.dots = c(grp_cols)) %>%
+      mutate(percentage=round(100*total/countT,2))
+    if(length(grp_cols) == 2){
+      if(input$inProportional){
+        ggplot(prapotionalChartData, aes_string(grp_cols[1], "percentage", fill = grp_cols[2])) + 
+          geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
+          geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
+          scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
+          facet_grid(~ year)
+      }else{
+        ggplot(chartData, aes_string(grp_cols[1], "total", fill = grp_cols[2])) +
+          geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
+          geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5)) +
+          facet_grid(~ year)
+      }
+    }
+    else{
+      if(input$inProportional){         
+        ggplot(prapotionalChartData, aes_string("year", "percentage", fill = grp_cols[1])) +
+          geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
+          geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
+          scale_y_continuous(labels = dollar_format(suffix = "%", prefix = ""))  
+      }else{
+        ggplot(chartData, aes_string("year", "total", fill = grp_cols[1])) +
+          geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
+          geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5))
+      }
     }
   })
 }
