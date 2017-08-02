@@ -31,6 +31,7 @@ pkgs_to_load <-
     "lazyeval",
     "rjson",
     "ggmap",
+    "leaflet",
     "DescTools"
   )
 lapply(pkgs_to_load, library, character.only = TRUE)

@@ -169,7 +169,7 @@ barChartTabUI <- function(id) {
                 tabPanel("Map Plot", 
                           fluidRow(column(
                            12,
-                           plotOutput(ns("mapPlot"))
+                           leafletOutput(ns("mapPlot"))
                          )))
                 )
             ),

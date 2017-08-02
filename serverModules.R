@@ -485,20 +485,50 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
   )
 }
 
+fetchGeoCode <- function(addresses){
+  lat <- c()
+  lon <- c()
+  localGeoCodes <- fromJSON(file='geocodes.json')
+  for (i in 1:length(addresses)) {
+    localGeoCode <- localGeoCodes[[addresses[i]]]
+    if(is.null(localGeoCode)){
+      print(addresses[i])
+      print("Fetch From Remote")
+      geocode <- geocode(paste("India", addresses[i]))
+      lat <- c(lat, geocode$lat)
+      lon <- c(lon, geocode$lon)
+      localGeoCodes[[addresses[i]]]$lat <- geocode$lat
+      localGeoCodes[[addresses[i]]]$lon <- geocode$lon
+    }
+    else{
+      lat <- c(lat, localGeoCode$lat)
+      lon <- c(lon, localGeoCode$lon)
+    }
+  }
+  write_lines(toJSON(localGeoCodes),'geocodes.json')
+  data.frame(lat,lon)
+}
+
 showGoogleMap <- function(output,grp_cols,obs){
-  # locations <- unique(obs[grp_cols])[[1]]
-  # print(class(locations))
   chartData <- obs %>% group_by_(.dots = c(grp_cols[1])) %>% summarise(total = n())
-  # chartData <- data.frame(location=locations,values=values)
-  print(chartData[[grp_cols[1]]])
-  print(class(chartData[[grp_cols[[1]]]]))
-  locs_geo <- geocode(chartData[[grp_cols[1]]])
+  print(chartData)
+  chartData <- subset(chartData, !is.na(chartData[[grp_cols[1]]])) 
+  locs_geo <- fetchGeoCode(chartData[[grp_cols[1]]])
   chartData <- cbind(chartData, locs_geo)
-  map <- qmap('Chhattisgarh', zoom = 8)
-  output$mapPlot <- renderPlot({
-    map +
-      geom_point(data = chartData, aes(x = lon, y = lat, size = total))
-  })
+  print(chartData)
+  chhattisGarh <- fetchGeoCode(c('Chhattisgarh'))
+
+  output$mapPlot <- renderLeaflet({
+    leaflet(chhattisGarh, data = chartData) %>%
+    setView(chhattisGarh$lon ,chhattisGarh$lat, zoom = 7) %>%
+    addTiles() %>%
+          addCircleMarkers(~lon, ~lat,
+           popup = ~as.character(chartData[[grp_cols[1]]]),
+           label = ~as.character(total),
+           labelOptions = labelOptions(noHide = T, direction = 'top', textOnly = T),
+             radius = 20
+          )
+    })
 }
 
 showBarChart <- function(input,output,grp_cols,obs){

@@ -34,6 +34,7 @@ if (!"shiny" %in% rownames(installed.packages()))
     "lazyeval",
     "rjson",
     "ggmap",
+    "leaflet",
     "DescTools"
   )
 lapply(pkgs_to_install_load, FUN = function(pkg){
