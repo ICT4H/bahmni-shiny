@@ -10,6 +10,8 @@
 library(install.load)
 library(DBI)
 library(shiny)
+library(properties)
+
 #load the required packages
 pkgs_to_load <-
   c(
@@ -50,9 +52,11 @@ ui <- fluidPage(
   uiOutput("tabs")
 )
 
+properties <- read.properties("app.properties")
+
 server <- function(input, output, session) {
   pluginTabs <- list()
-  pathToPluginsFolder <- "/Users/mritunjd/Documents/projects/bahmni/bahmni-shiny/plugins"
+  pathToPluginsFolder <- properties$pluginsFolder
   files <- list.files(pathToPluginsFolder)
   
   lapply(files, FUN=function(file){
