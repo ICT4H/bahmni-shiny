@@ -11,14 +11,18 @@ identityFilePath <- properties$identityFilePath
 localPort <- properties$localPort
 sshUsername <- properties$sshUsername
 
-sshTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localPort, ":localhost:3306 ", sshUsername, "@", host, " sleep 10", sep="")
-system(sshTunnleCommand)
-
+if(host=="localhost") {
+  localhost <- "localhost"
+} else {
+  localhost <- "127.0.0.1"
+  sshTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localPort, ":localhost:3306 ", sshUsername, "@", host, " sleep 10", sep="")
+  system(sshTunnleCommand)
+}
 getConnectionPool <- function() {
 	pool <- dbPool(
 	  drv = RMySQL::MySQL(),
 	  dbname = dbName,
-	  host = "127.0.0.1",
+	  host = localhost,
 	  username = dbUsername,
 	  password = dbPassword,
 	  port = strtoi(localPort)
