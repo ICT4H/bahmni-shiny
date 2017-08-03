@@ -17,7 +17,6 @@ pkgs_to_load <-
   c(
     "tidyr",
     "stringr",
-    "readr",
     "lubridate",
     "RMySQL",
     "readr",

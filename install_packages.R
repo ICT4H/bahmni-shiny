@@ -21,7 +21,6 @@ if (!"shiny" %in% rownames(installed.packages()))
     "readr",
     "lubridate",
     "RMySQL",
-    "readr",
     "ggplot2",
     "scales",
     "eeptools",

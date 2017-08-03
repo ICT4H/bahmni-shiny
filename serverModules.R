@@ -492,7 +492,6 @@ fetchGeoCode <- function(addresses){
   for (i in 1:length(addresses)) {
     localGeoCode <- localGeoCodes[[addresses[i]]]
     if(is.null(localGeoCode)){
-      print(addresses[i])
       print("Fetch From Remote")
       geocode <- geocode(paste("India", addresses[i]))
       lat <- c(lat, geocode$lat)
@@ -511,16 +510,14 @@ fetchGeoCode <- function(addresses){
 
 showGoogleMap <- function(output,grp_cols,obs){
   chartData <- obs %>% group_by_(.dots = c(grp_cols[1])) %>% summarise(total = n())
-  print(chartData)
   chartData <- subset(chartData, !is.na(chartData[[grp_cols[1]]])) 
   locs_geo <- fetchGeoCode(chartData[[grp_cols[1]]])
   chartData <- cbind(chartData, locs_geo)
-  print(chartData)
-  chhattisGarh <- fetchGeoCode(c('Chhattisgarh'))
+  maxRow <- chartData[which.max(chartData$total), ]
 
   output$mapPlot <- renderLeaflet({
-    leaflet(chhattisGarh, data = chartData) %>%
-    setView(chhattisGarh$lon ,chhattisGarh$lat, zoom = 7) %>%
+    leaflet(maxRow, data = chartData) %>%
+    setView(maxRow$lon ,maxRow$lat, zoom = 9) %>%
     addTiles() %>%
           addCircleMarkers(~lon, ~lat,
            popup = ~as.character(chartData[[grp_cols[1]]]),
