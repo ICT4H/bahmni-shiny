@@ -33,6 +33,7 @@ pkgs_to_load <-
     "rjson",
     "ggmap",
     "leaflet",
+    "plotly",
     "DescTools"
   )
 lapply(pkgs_to_load, library, character.only = TRUE)

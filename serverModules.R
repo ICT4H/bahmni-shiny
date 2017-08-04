@@ -34,7 +34,9 @@ contentPanel <- function(input, output, session){
           "Table" = 1,
           "Bar Chart" = 2,
           "Histogram" = 3,
-          "Scatter Plot" = 4
+          "Scatter Plot" = 4,
+          "Map Plot" = 5,
+          "Line Chart" = 6
         )
       )
       
@@ -438,6 +440,9 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
     } else if(chartOption == 5){
       showGoogleMap(output,grp_cols,obs)
       selectedValue <- "Map Plot"
+    } else if(chartOption == 6){
+      showLineChart(input,output,grp_cols,obs)
+      selectedValue <- "Line Chart"
     }
     updateNavbarPage(session, "inChartMenu", selected = selectedValue)
     ns <- session$ns
@@ -483,6 +488,34 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
       }
     }
   )
+}
+
+showLineChart <- function(input,output,grp_cols,obs){
+  interval <- input$inTimeInterval
+  if(interval == "Years"){
+    obs[interval] <- strftime(obs$visitDate, format="%Y")  
+  }else if(input$inTimeInterval == "Months"){
+    obs[interval] <- strftime(obs$visitDate, format="%m-%Y")  
+  }
+  
+  chartData <- obs %>% group_by_(.dots = c(grp_cols, interval)) %>% summarise(total = n())
+  prapotionalChartData <- chartData %>%
+      group_by_(.dots = c(interval)) %>%
+      mutate(countT= sum(total)) %>%
+      group_by_(.dots = c(grp_cols)) %>%
+      mutate(percentage=round(100*total/countT,2))
+  output$lineChart <- renderPlotly({
+    if(input$inProportional){
+      chartData <- prapotionalChartData
+      outputVar <- "percentage"
+    }else{
+      outputVar <- "total"
+    }
+    plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = grp_cols[1], group = grp_cols[1]))
+    plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point()
+    plot <- plot + stat_summary(fun.y = sum, na.rm = TRUE, group = 3, color = 'black', geom ='line')
+    ggplotly(plot, tooltip = c("x", "group", "y"))
+  })
 }
 
 fetchGeoCode <- function(addresses){
@@ -535,49 +568,54 @@ showBarChart <- function(input,output,grp_cols,obs){
     ))
     return()
   }
-  output$barPlot <- renderPlot({
-    names <- unique(obs[grp_cols])
-    obs$year <- strftime(obs$visitDate, format="%Y")
-    chartData <- obs %>% group_by_(.dots = c(grp_cols, "year")) %>% summarise(total = n())
+  output$barPlot <- renderPlotly({
+    interval <- input$inTimeInterval
+    if(interval == "Years"){
+      obs[interval] <- strftime(obs$visitDate, format="%Y")  
+    }else if(input$inTimeInterval == "Months"){
+      obs[interval] <- strftime(obs$visitDate, format="%m-%Y")  
+    }
+    chartData <- obs %>% group_by_(.dots = c(grp_cols, interval)) %>% summarise(total = n())
     prapotionalChartData <- chartData %>%
-      group_by(year) %>%
+      group_by_(.dots = c(interval)) %>%
       mutate(countT= sum(total)) %>%
       group_by_(.dots = c(grp_cols)) %>%
       mutate(percentage=round(100*total/countT,2))
     if(length(grp_cols) == 2){
-      if(input$inFlipVars){
+      if(input$inFlip){
         grp_cols = rev(grp_cols)
       }
       if(input$inProportional){
-        ggplot(prapotionalChartData, aes_string(grp_cols[1], "percentage", fill = grp_cols[2])) + 
+        plot <- ggplot(prapotionalChartData, aes_string(grp_cols[1], "percentage", fill = grp_cols[2])) + 
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
-          facet_grid(~ year)
+          facet_grid(as.formula(paste("~", interval)))
       }else{
-        ggplot(chartData, aes_string(grp_cols[1], "total", fill = grp_cols[2])) +
+        prapotionalChartData$group <- prapotionalChartData[[interval]]
+        plot <- ggplot(chartData, aes_string(grp_cols[1], "total", fill = grp_cols[2])) +
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5)) +
-          facet_grid(~ year)
+          facet_grid(as.formula(paste("~", interval)))
       }
     }
     else{
-      if(input$inFlipVars){
-        showModal(modalDialog(
-          "Flip is only possible when two variables are selected!"
-        ))
-        return()
+      if(input$inFlip){
+        barType <- position_stack(vjust = 0.5)
+      }else{
+        barType <- position_dodge(width = 0.3)
       }
       if(input$inProportional){         
-        ggplot(prapotionalChartData, aes_string("year", "percentage", fill = grp_cols[1])) +
-          geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
-          geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
+        plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = grp_cols[1])) +
+          geom_bar(stat="identity", position = barType, width=0.4) +
+          geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = barType) +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = ""))  
       }else{
-        ggplot(chartData, aes_string("year", "total", fill = grp_cols[1])) +
-          geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
-          geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5))
+        plot <- ggplot(chartData, aes_string(interval, "total", fill = grp_cols[1])) +
+          geom_bar(stat="identity", position = barType, width=0.4) +
+          geom_text(data=chartData, aes (label = total), size = 3, position = barType)
       }
     }
+    ggplotly(plot)
   })
 }

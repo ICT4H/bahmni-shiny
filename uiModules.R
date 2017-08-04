@@ -124,10 +124,14 @@ barChartTabUI <- function(id) {
               selectInput(
                 ns("inCharts"),
                 'Charts:',
-                choices = c("Table", "Bar Chart", "Histogram", "Scatter Plot", "Map Plot"),
+                choices = c("Table", "Bar Chart", "Histogram", "Scatter Plot", "Map Plot", "Line Chart"),
                 multiple = F
               ),
               checkboxInput(ns("inProportional"), "Proportional", value = F),
+              selectInput(ns("inTimeInterval"), "Time Interval"
+                ,choices = c("Years","Months"),
+                selected = 1,
+                multiple = F),
               actionButton(ns("inShow"), "Show")
             ),
             # Show a plot of the generated distribution
@@ -141,11 +145,11 @@ barChartTabUI <- function(id) {
                 tabPanel("Bar Chart",
                         fluidRow(column(
                            12,
-                           checkboxInput(ns("inFlipVars"), "Flip Variables:", value = F)
+                           checkboxInput(ns("inFlip"), "Flip:", value = F)
                          )),
                          fluidRow(column(
                            12,
-                           plotOutput(ns("barPlot"))
+                           plotlyOutput(ns("barPlot"))
                          ))),
                 tabPanel("Histogram",
                          fluidRow(column(
@@ -170,6 +174,11 @@ barChartTabUI <- function(id) {
                           fluidRow(column(
                            12,
                            leafletOutput(ns("mapPlot"))
+                         ))),
+                tabPanel("Line Chart",
+                         fluidRow(column(
+                           12,
+                           plotlyOutput(ns("lineChart"))
                          )))
                 )
             ),

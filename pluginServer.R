@@ -35,7 +35,8 @@ plugin <- function(input, output, session, dataSourceFile){
           "Bar Chart" = 2,
           "Histogram" = 3,
           "Scatter Plot" = 4,
-          "Map Plot" = 5
+          "Map Plot" = 5,
+          "Line Chart" = 6
         )
       )
       
