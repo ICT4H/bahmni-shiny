@@ -176,10 +176,16 @@ barChartTabUI <- function(id) {
                            leafletOutput(ns("mapPlot"))
                          ))),
                 tabPanel("Line Chart",
-                         fluidRow(column(
-                           12,
-                           plotlyOutput(ns("lineChart"))
-                         )))
+                       fluidRow(column(
+                         12,
+                         radioButtons(ns("inFunction"), "Function",
+                          inline = T,
+                          choices = c("none","sum", "mean", "sd", "median"))
+                       )),
+                       fluidRow(column(
+                         12,
+                         plotlyOutput(ns("lineChart"))
+                       )))
                 )
             ),
             uiOutput(ns("tableDownload")))

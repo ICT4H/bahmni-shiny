@@ -400,6 +400,12 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
   observeEvent(input$inShow, {
     chartOption <- input$inCharts
     grp_cols <- input$inDimensions
+    if(length(grp_cols) == 0){
+      showModal(modalDialog(
+        "Please select atleast one variable!"
+      ))
+      return()
+    }
     obs <- mainTable$data
     dots <- lapply(grp_cols, as.symbol)
     if (chartOption == 1) {
@@ -513,8 +519,10 @@ showLineChart <- function(input,output,grp_cols,obs){
     }
     plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = grp_cols[1], group = grp_cols[1]))
     plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point()
-    plot <- plot + stat_summary(fun.y = sum, na.rm = TRUE, group = 3, color = 'black', geom ='line')
-    ggplotly(plot, tooltip = c("x", "group", "y"))
+    if(input$inFunction != "none"){
+      plot <- plot + stat_summary(fun.y = input$inFunction, na.rm = TRUE, group = 3, color = 'black', geom ='line')
+    }
+    ggplotly(plot, tooltip = c("x", "group", "y")) %>% config(displayModeBar = F)
   })
 }
 
@@ -590,13 +598,13 @@ showBarChart <- function(input,output,grp_cols,obs){
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
-          facet_grid(as.formula(paste("~", interval)))
+          facet_grid(as.formula(paste("~", interval))) 
       }else{
         prapotionalChartData$group <- prapotionalChartData[[interval]]
         plot <- ggplot(chartData, aes_string(grp_cols[1], "total", fill = grp_cols[2])) +
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5)) +
-          facet_grid(as.formula(paste("~", interval)))
+          facet_grid(as.formula(paste("~", interval))) 
       }
     }
     else{
@@ -613,9 +621,14 @@ showBarChart <- function(input,output,grp_cols,obs){
       }else{
         plot <- ggplot(chartData, aes_string(interval, "total", fill = grp_cols[1])) +
           geom_bar(stat="identity", position = barType, width=0.4) +
-          geom_text(data=chartData, aes (label = total), size = 3, position = barType)
+          geom_text(data=chartData, aes (label = total), size = 3, position = barType) 
       }
+    } 
+    
+    p <-ggplotly(plot)
+    for (i in 1:length(p$x$data)){
+        p$x$data[[i]]$hovertext <- NULL
     }
-    ggplotly(plot)
+    p %>% config(displayModeBar = F)
   })
 }
