@@ -1,5 +1,6 @@
 library(rlang)
 getDateTimeConcepts <- function() {
+  mysqlPool <- getMysqlConnectionPool()
   dbOutput <- list("Obs Date"=1)
   concept_data_type <- mysqlPool %>%
      tbl("concept_datatype") %>%
@@ -21,10 +22,12 @@ getDateTimeConcepts <- function() {
      collect(n= Inf)
 
   dbOutput <- append(dbOutput,setNames(concept_names$concept_id, concept_names$name))
-  dbOutput
+  disconnectFromDb(mysqlPool)
+  return (dbOutput)
 }
 
 getConceptByType <- function(type){
+  mysqlPool <- getMysqlConnectionPool()
   dbOutput <- list()
   concept_names <- NULL
   if(type==1){ #Class
@@ -52,9 +55,12 @@ getConceptByType <- function(type){
       }
     dbOutput <- setNames(concept_names$concept_id, concept_names$name)
   }
+  disconnectFromDb(mysqlPool)
+  return (dbOutput)
 }
 
 getConceptAnswers <- function(concepts, filterBy){
+  mysqlPool <- getMysqlConnectionPool()
   if(filterBy==2 && !is.null(concepts)){
     concept_answers <- mysqlPool %>% 
       tbl("concept_answer") %>% 
@@ -74,22 +80,27 @@ getConceptAnswers <- function(concepts, filterBy){
       collect(n=Inf) %>% 
       filter(concept_id %in% concept_answers$answer_concept)
     dbOutput <- setNames(concept_names$concept_id, concept_names$name)
-    dbOutput
   } else{
     dbOutput <- c("")
-    dbOutput
   }
+  disconnectFromDb(mysqlPool)
+  return (dbOutput)
 }
 
 getConcepts <- function(){
-  mysqlPool %>% 
-  tbl("concept") %>% 
-  select(concept_id, class_id) %>% 
-  rename(conceptid = concept_id)
+  mysqlPool <- getMysqlConnectionPool()
+  dbOutput <- mysqlPool %>% 
+    tbl("concept") %>% 
+    select(concept_id, class_id) %>% 
+    rename(conceptid = concept_id)
+
+  disconnectFromDb(mysqlPool)
+  return (dbOutput)
 }
 
 getObsForSelection <- function(concepts, filterColumn, listBy) {
-  mysqlPool %>% 
+  mysqlPool <- getMysqlConnectionPool()
+  dbOutput <- mysqlPool %>% 
     tbl("obs") %>% 
     inner_join(concepts, by=c("concept_id"="conceptid")) %>%  # in case of class the join should be on value_coded
     filter_("voided==0", paste(filterColumn, "%in% listBy")) %>% 
@@ -98,19 +109,26 @@ getObsForSelection <- function(concepts, filterColumn, listBy) {
            value_drug, value_datetime, value_numeric,
            value_text, comments, obs_group_id) %>% 
     collect(n = Inf) 
+
+  disconnectFromDb(mysqlPool)
+  return (dbOutput)
 }
 
 getAllConceptNames <- function() {
-  mysqlPool %>% 
+  mysqlPool <- getMysqlConnectionPool()
+  dbOutput <- mysqlPool %>% 
     tbl("concept_name") %>% 
     select(concept_id, name, voided, concept_name_type) %>% 
     rename(conceptid = concept_id) %>% 
     filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
     collect(n=Inf) 
+
+  disconnectFromDb(mysqlPool)
+  return (dbOutput)
 }
 
 mapObsWithConceptNames <- function(obs, conceptNames) {
-  obs %>% 
+   obs %>% 
     inner_join(conceptNames, by = c("concept_id"="conceptid")) %>% 
     select(-voided, -concept_name_type) %>% 
     rename(concept_name = name) %>% 
@@ -130,6 +148,7 @@ mapObsWithConceptNames <- function(obs, conceptNames) {
 }
 
 filterObsByDateConcept <- function(obs, conceptDates, dateRange) {
+  mysqlPool <- getMysqlConnectionPool()
   obs_dt <- mysqlPool %>% 
     tbl("obs") %>% 
     filter(voided==0, concept_id %in% conceptDates) %>% 
@@ -140,16 +159,23 @@ filterObsByDateConcept <- function(obs, conceptDates, dateRange) {
     filter(value_datetime>=ymd(dateRange[1]),
            value_datetime<=ymd(dateRange[2])) %>% 
     select(personId)
-   obs %>% 
+  dbOutput <- obs %>% 
     inner_join(obs_dt, by = c("person_id"="personId"))
+
+  disconnectFromDb(mysqlPool)
+  return (dbOutput)
 }
 
 getPatientIdentifiers <- function(){
-  mysqlPool %>% 
+  mysqlPool <- getMysqlConnectionPool()
+  dbOutput <- mysqlPool %>% 
     tbl("patient_identifier") %>% 
     filter(voided==0,identifier_type==3) %>% 
     select(patient_id, identifier) %>% 
     collect(n=Inf)
+
+  disconnectFromDb(mysqlPool)
+  return (dbOutput)
 }
 
 age <- function(from, to) {
@@ -164,7 +190,8 @@ age <- function(from, to) {
 }
 
 getPersonDemographics <- function(){
-  mysqlPool %>% 
+  mysqlPool <- getMysqlConnectionPool()
+  dbOutput <- mysqlPool %>% 
     tbl("person") %>% 
     filter(voided == 0) %>% 
     select(person_id, gender, birthdate) %>% 
@@ -176,4 +203,7 @@ getPersonDemographics <- function(){
     mutate(Age = age(from=birthdate, to=Sys.Date())
     ) %>% 
     select(-birthdate)
+    
+  disconnectFromDb(mysqlPool)
+  return (dbOutput)
 }

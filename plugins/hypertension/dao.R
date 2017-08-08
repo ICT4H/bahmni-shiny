@@ -17,8 +17,6 @@ fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
     select("id") %>%
     collect(n=Inf)
 
-  print(nrow(ids))
-
   dbOutput <- list()
   variablesToFetch <- list("BMI", "Systolic",
                            "Diastolic")

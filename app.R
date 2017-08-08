@@ -1,12 +1,3 @@
-#To be executed only once for first time when this app is run on a particular machine
-#to ensure correct packages are installed
-# pkgs_to_remove <- c("install.load", "devtools", "DBI", "pool", "shiny",
-#                     "tidyr", "stringr", "readr","lubridate", "RMySQL","readr",
-#                           "ggplot2", "scales", "eeptools", "data.table",
-#                           "dplyr","DT","shinyjs","shinyBS","purrr",
-#                           "lazyeval","DescTools")
-#
-# remove.packages(pkgs_to_remove)
 library(install.load)
 library(DBI)
 library(shiny)
@@ -38,10 +29,8 @@ pkgs_to_load <-
 lapply(pkgs_to_load, library, character.only = TRUE)
 
 options(shiny.trace = F)
-source("connector.R")
-mysqlPool <- getMysqlConnectionPool()
-psqlPool <- getPsqlConnectionPool()
 
+source("connector.R")
 source("uiModules.R")
 source("serverModules.R")
 source("pluginServer.R")

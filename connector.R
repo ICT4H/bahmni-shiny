@@ -1,4 +1,3 @@
-library(pool)
 library(properties)
 
 properties <- read.properties("app.properties")
@@ -29,7 +28,7 @@ if(host=="localhost") {
 }
 
 getMysqlConnectionPool <- function() {
-	dbPool(
+	DBI::dbConnect(
 	  drv = RMySQL::MySQL(),
 	  dbname = mysqlDb,
 	  host = localhost,
@@ -39,8 +38,12 @@ getMysqlConnectionPool <- function() {
 	)
 }
 
+disconnectFromDb <- function(conn){
+	DBI::dbDisconnect(conn)
+}
+
 getPsqlConnectionPool <- function() {
-	dbPool(
+	DBI::dbConnect(
 	  drv = RPostgreSQL::PostgreSQL(),
 	  dbname = psqlDb,
 	  host = localhost,

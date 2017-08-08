@@ -44,7 +44,9 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
     mysqlPool <- getMysqlConnectionPool()
     psqlPool <- getPsqlConnectionPool()
     source(dataSourceFile,local=envir)
-    mainTable$data <- envir$fetchData(mysqlPool,psqlPool, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
+    mainTable$data <- envir$fetchData(mysqlPool, psqlPool, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
+    disconnectFromDb(mysqlPool)
+    disconnectFromDb(psqlPool)
     envir <- NULL
     output$obsDT <- DT::renderDataTable(
       mainTable$data,
