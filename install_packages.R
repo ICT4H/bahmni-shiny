@@ -32,7 +32,7 @@ if (!"shiny" %in% rownames(installed.packages()))
     "purrr",
     "lazyeval",
     "rjson",
-    "plotly"
+    "plotly",
     "ggmap",
     "leaflet",
     "DescTools"
