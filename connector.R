@@ -3,29 +3,49 @@ library(properties)
 
 properties <- read.properties("app.properties")
 
-dbName <- properties$database
 host <- properties$host
-dbUsername <- properties$dbUsername
-dbPassword <- properties$dbPassword
 identityFilePath <- properties$identityFilePath
-localPort <- properties$localPort
 sshUsername <- properties$sshUsername
+
+mysqlDb <- properties$mysqlDbName
+mysqlUser <- properties$mysqlUser
+mysqlPassword <- properties$mysqlPassword
+localMysqlPort <- properties$localMysqlPort
+
+psqlDb <- properties$psqlDbName
+psqlUser <- properties$psqlUser
+psqlPassword <- properties$psqlPassword
+localPsqlPort <- properties$localPsqlPort
+
 
 if(host=="localhost") {
   localhost <- "localhost"
 } else {
   localhost <- "127.0.0.1"
-  sshTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localPort, ":localhost:3306 ", sshUsername, "@", host, " sleep 10", sep="")
-  system(sshTunnleCommand)
+  sshMysqlTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localMysqlPort, ":localhost:3306 ", sshUsername, "@", host, " sleep 10", sep="")
+  system(sshMysqlTunnleCommand)
+  sshPsqlTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localPsqlPort, ":localhost:5432 ", sshUsername, "@", host, " sleep 10", sep="")
+  system(sshPsqlTunnleCommand)
 }
-getConnectionPool <- function() {
-	pool <- dbPool(
+
+getMysqlConnectionPool <- function() {
+	dbPool(
 	  drv = RMySQL::MySQL(),
-	  dbname = dbName,
+	  dbname = mysqlDb,
 	  host = localhost,
-	  username = dbUsername,
-	  password = dbPassword,
-	  port = strtoi(localPort)
+	  username = mysqlUser,
+	  password = mysqlPassword,
+	  port = strtoi(localMysqlPort)
 	)
-	return(pool)	
+}
+
+getPsqlConnectionPool <- function() {
+	dbPool(
+	  drv = RPostgreSQL::PostgreSQL(),
+	  dbname = psqlDb,
+	  host = localhost,
+	  user = psqlUser,
+	  password = psqlPassword,
+	  port = strtoi(localPsqlPort)
+	)
 }

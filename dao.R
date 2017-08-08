@@ -1,23 +1,19 @@
 library(rlang)
-source("connector.R")
-pool <- getConnectionPool()
 getDateTimeConcepts <- function() {
   dbOutput <- list("Obs Date"=1)
-  #SRC_POOL <- src_pool(pool)
-  #SRC_POOL <- my_db
-  concept_data_type <- pool %>%
+  concept_data_type <- mysqlPool %>%
      tbl("concept_datatype") %>%
      select(concept_datatype_id,name, retired) %>%
      filter(retired == 0, name=="Datetime")  #Get all date type concepts
   
-  concept <- pool %>%
+  concept <- mysqlPool %>%
      tbl("concept") %>%
      inner_join(concept_data_type, by=c("datatype_id"="concept_datatype_id")) %>%
      filter(retired.x==0) %>%
      select(concept_id) %>%
      rename(conceptid = concept_id)
   
-   concept_names <- pool %>%
+   concept_names <- mysqlPool %>%
      tbl("concept_name") %>%
      inner_join(concept, by = c("concept_id"="conceptid")) %>%
      filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>%
@@ -32,19 +28,19 @@ getConceptByType <- function(type){
   dbOutput <- list()
   concept_names <- NULL
   if(type==1){ #Class
-    concept_classes <- pool %>% 
+    concept_classes <- mysqlPool %>% 
       tbl("concept_class") %>% 
       select(concept_class_id, name, retired) %>% 
       filter(retired == 0) %>% 
       collect(n=Inf)
     dbOutput <- setNames(concept_classes$concept_class_id, concept_classes$name)
   }else if(type %in% c(2,3)){ #Question and Answer
-    concept_answers <- pool %>% 
+    concept_answers <- mysqlPool %>% 
       tbl("concept_answer") %>% 
       distinct(answer_concept) %>% 
       select(answer_concept) %>% 
       collect(n= Inf)
-    concept_names <- pool %>% 
+    concept_names <- mysqlPool %>% 
       tbl("concept_name") %>% 
       select(concept_id, name, voided, concept_name_type) %>% 
       filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
@@ -60,9 +56,7 @@ getConceptByType <- function(type){
 
 getConceptAnswers <- function(concepts, filterBy){
   if(filterBy==2 && !is.null(concepts)){
-    #conDplyr <- src_pool(pool)
-    #conDplyr <- my_db
-    concept_answers <- pool %>% 
+    concept_answers <- mysqlPool %>% 
       tbl("concept_answer") %>% 
       select(answer_concept, concept_id) %>% 
       collect(n= Inf)
@@ -73,7 +67,7 @@ getConceptAnswers <- function(concepts, filterBy){
     concept_answers <- concept_answers %>% 
       group_by(answer_concept) %>% 
       summarise(Count = n())
-    concept_names <- pool %>% 
+    concept_names <- mysqlPool %>% 
       tbl("concept_name") %>% 
       select(concept_id, name, voided, concept_name_type) %>% 
       filter(voided == 0, concept_name_type=="FULLY_SPECIFIED") %>% 
@@ -88,14 +82,14 @@ getConceptAnswers <- function(concepts, filterBy){
 }
 
 getConcepts <- function(){
-  pool %>% 
+  mysqlPool %>% 
   tbl("concept") %>% 
   select(concept_id, class_id) %>% 
   rename(conceptid = concept_id)
 }
 
 getObsForSelection <- function(concepts, filterColumn, listBy) {
-  pool %>% 
+  mysqlPool %>% 
     tbl("obs") %>% 
     inner_join(concepts, by=c("concept_id"="conceptid")) %>%  # in case of class the join should be on value_coded
     filter_("voided==0", paste(filterColumn, "%in% listBy")) %>% 
@@ -107,7 +101,7 @@ getObsForSelection <- function(concepts, filterColumn, listBy) {
 }
 
 getAllConceptNames <- function() {
-  pool %>% 
+  mysqlPool %>% 
     tbl("concept_name") %>% 
     select(concept_id, name, voided, concept_name_type) %>% 
     rename(conceptid = concept_id) %>% 
@@ -136,7 +130,7 @@ mapObsWithConceptNames <- function(obs, conceptNames) {
 }
 
 filterObsByDateConcept <- function(obs, conceptDates, dateRange) {
-  obs_dt <- pool %>% 
+  obs_dt <- mysqlPool %>% 
     tbl("obs") %>% 
     filter(voided==0, concept_id %in% conceptDates) %>% 
     select(person_id, value_datetime) %>% 
@@ -151,7 +145,7 @@ filterObsByDateConcept <- function(obs, conceptDates, dateRange) {
 }
 
 getPatientIdentifiers <- function(){
-  pool %>% 
+  mysqlPool %>% 
     tbl("patient_identifier") %>% 
     filter(voided==0,identifier_type==3) %>% 
     select(patient_id, identifier) %>% 
@@ -170,7 +164,7 @@ age <- function(from, to) {
 }
 
 getPersonDemographics <- function(){
-  pool %>% 
+  mysqlPool %>% 
     tbl("person") %>% 
     filter(voided == 0) %>% 
     select(person_id, gender, birthdate) %>% 

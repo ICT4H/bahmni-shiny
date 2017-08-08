@@ -11,26 +11,33 @@ age <- function(from, to) {
          age - 1, age)
 }
 
-fetchData <- function(pool, startDate, endDate) {
+fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
+  ids <- psqlPool %>%
+    tbl("sale_order") %>%
+    select("id") %>%
+    collect(n=Inf)
+
+  print(nrow(ids))
+
   dbOutput <- list()
   variablesToFetch <- list("BMI", "Systolic",
                            "Diastolic")
 
-  hypertensionConceptId <- pool %>%
+  hypertensionConceptId <- mysqlPool %>%
      tbl("concept_name") %>%
      filter(voided == 0, name=="Hypertension",
       concept_name_type=="FULLY_SPECIFIED") %>%
      select(concept_id) %>%
      pull(concept_id)
 
-  codedDiagnosisConceptId <- pool %>%
+  codedDiagnosisConceptId <- mysqlPool %>%
      tbl("concept_name") %>%
      filter(voided == 0, name=="Coded Diagnosis",
       concept_name_type=="FULLY_SPECIFIED") %>%
      select(concept_id) %>%
      pull(concept_id)
 
-  patientWithHypertension <- pool %>% 
+  patientWithHypertension <- mysqlPool %>% 
     tbl("obs") %>% 
     filter(voided==0,
      value_coded == hypertensionConceptId,
@@ -46,7 +53,7 @@ fetchData <- function(pool, startDate, endDate) {
   encIds <- pull(patientWithHypertension, encounter_id)
   personIds <- pull(patientWithHypertension, person_id)
 
-  hypertensionVisits <- pool %>%
+  hypertensionVisits <- mysqlPool %>%
     tbl("encounter") %>%
     filter(voided==0,
      encounter_id %in% encIds) %>% 
@@ -54,7 +61,7 @@ fetchData <- function(pool, startDate, endDate) {
     collect(n=Inf)
 
   visitIds <- pull(hypertensionVisits, visit_id)
-  visitDates <- pool %>%
+  visitDates <- mysqlPool %>%
     tbl("visit") %>%
     filter(voided==0, visit_id %in% visitIds) %>% 
     select(date_started,visit_id) %>%
@@ -66,7 +73,7 @@ fetchData <- function(pool, startDate, endDate) {
     rename(visitDate = date_started) %>%
     collect(n=Inf)
   
-  patients <- pool %>%
+  patients <- mysqlPool %>%
     tbl("person") %>%
     filter(voided==0, person_id %in% personIds) %>%
     select(person_id, gender, birthdate) %>% 
@@ -76,13 +83,13 @@ fetchData <- function(pool, startDate, endDate) {
     mutate(Age = age(from=birthdate, to=Sys.Date())) %>% 
     select(-birthdate)
 
-  personAddresses <- pool %>%
+  personAddresses <- mysqlPool %>%
     tbl("person_address") %>%
     filter(voided==0, person_id %in% personIds) %>%
     select(person_id,county_district,state_province) %>%
     collect(n=Inf)
 
-  patientIdentifiers <- pool %>% 
+  patientIdentifiers <- mysqlPool %>% 
     tbl("patient_identifier") %>% 
     filter(voided==0,identifier_type==3, patient_id %in% personIds) %>% 
     select(patient_id, identifier) %>% 
@@ -96,12 +103,12 @@ fetchData <- function(pool, startDate, endDate) {
     inner_join(hypertensionVisits, by = c("person_id"="patient_id")) %>%
     collect(n=Inf)
 
-  allObsForHypertensionPatients <- pool %>%
+  allObsForHypertensionPatients <- mysqlPool %>%
     tbl("obs") %>%
     filter(voided==0, person_id %in% personIds) %>%
     collect(n=Inf)
     
-  conceptNames <- pool %>%
+  conceptNames <- mysqlPool %>%
     tbl("concept_name") %>%
     filter(voided == 0, name %in% variablesToFetch,
       concept_name_type=="FULLY_SPECIFIED") %>%

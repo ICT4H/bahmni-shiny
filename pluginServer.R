@@ -12,13 +12,6 @@ plugin <- function(input, output, session, dataSourceFile){
       "Answer" = 3
     )
   )
-  
-  dateTimeConcepts <- eventReactive(input$inTabPanel,{
-      if(input$inTabPanel=="Search"){
-        getDateTimeConcepts()
-      }
-  })
-
   observeEvent(input$inTabPanel, {
     if (input$inTabPanel == "Bar and Charts") {
       updateCheckboxGroupInput(
@@ -41,21 +34,6 @@ plugin <- function(input, output, session, dataSourceFile){
       )
       
     }
-    else{
-      # Can also set the label and select items
-      updateSelectInput(
-        session,
-        "search-inSelect",
-        label = "",
-        choices = selectChoices$data,
-        selected = 2
-      )
-      updateSelectInput(session,
-                        "search-inDateBy",
-                        label = "Date Filter",
-                        choices = dateTimeConcepts())
-      
-    }
   })
 }
 
@@ -63,8 +41,10 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
   observeEvent(input$inApply, {
     dateRange <- as.character(input$inDateRange)
     envir <- new.env()
+    mysqlPool <- getMysqlConnectionPool()
+    psqlPool <- getPsqlConnectionPool()
     source(dataSourceFile,local=envir)
-    mainTable$data <- envir$fetchData(pool, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
+    mainTable$data <- envir$fetchData(mysqlPool,psqlPool, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
     envir <- NULL
     output$obsDT <- DT::renderDataTable(
       mainTable$data,

@@ -92,8 +92,6 @@ searchTab <- function(input, output, session, mainTable) {
   })
   
   observeEvent(input$inApply, {
-    #conDplyr <- src_pool(pool)
-    #conDplyr <- my_db
     filterBy <- input$inSelect
     listBy <- as.list(input$inCheckboxGroup)
     dateBy <- input$inDateBy

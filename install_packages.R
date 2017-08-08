@@ -1,4 +1,7 @@
-install.packages('RMySQL', type = 'source', repos="http://cran.rstudio.com/")
+if (!"RPostgreSQL" %in% rownames(installed.packages()))
+  install.packages("RPostgreSQL", repos="http://cran.rstudio.com/")
+if (!"RMySQL" %in% rownames(installed.packages()))
+  install.packages("RMySQL", repos="http://cran.rstudio.com/")
 if (!"properties" %in% rownames(installed.packages()))
   install.packages("properties", repos="http://cran.rstudio.com/")
 if (!"install.load" %in% rownames(installed.packages()))
@@ -38,5 +41,7 @@ if (!"shiny" %in% rownames(installed.packages()))
     "DescTools"
   )
 lapply(pkgs_to_install_load, FUN = function(pkg){
-  install.packages(pkg, repos="http://cran.rstudio.com/")
+  if(!pkg %in% rownames(installed.packages())){
+    install.packages(pkg, repos="http://cran.rstudio.com/")
+  }
 })
