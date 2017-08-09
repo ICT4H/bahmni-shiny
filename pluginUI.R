@@ -94,7 +94,7 @@ pluginSearchTabUI <- function(id) {
               )
             )
           ),
-          DT::dataTableOutput(ns("obsDT"))
+          withSpinner(DT::dataTableOutput(ns("obsDT")))
           ,
           downloadButton(ns("downloadData"), 'Download')
         )

@@ -24,6 +24,7 @@ pkgs_to_load <-
     "ggmap",
     "leaflet",
     "plotly",
+    "shinycssloaders",
     "DescTools"
   )
 lapply(pkgs_to_load, library, character.only = TRUE)
@@ -39,7 +40,7 @@ source("pluginUI.R")
 ui <- fluidPage(
   useShinyjs(),
   titlePanel("Welcome!"),
-  uiOutput("tabs")
+  withSpinner(uiOutput("tabs"))
 )
 
 properties <- read.properties("app.properties")

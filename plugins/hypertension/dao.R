@@ -18,7 +18,7 @@ fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
     collect(n=Inf)
 
   dbOutput <- list()
-  variablesToFetch <- list("BMI", "Systolic",
+  variablesToFetch <- list("BMI","BMI Status", "Systolic",
                            "Diastolic")
 
   hypertensionConceptId <- mysqlPool %>%
@@ -120,7 +120,7 @@ fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
     filter(obs_datetime == max(obs_datetime)) %>%
     ungroup() %>%
     rename(ID=identifier) %>%
-    select(ID,name,value_numeric, Age, State, District, Gender, visitDate) %>%
+    select(ID, name, value_numeric, value_text, Age, State, District, Gender, visitDate) %>%
     collect(n = Inf)
 
     #This is to filter out incorrect data entries.
@@ -129,7 +129,7 @@ fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
     #This row says in single encounter same concept has been filled twice at same time
   obsForVariables <- obsForVariables %>% distinct(ID,name, .keep_all = TRUE)
   obsForVariables <- obsForVariables %>% 
-    gather(Key, Value, starts_with("value_numeric")) %>%
+    gather(Key, Value, starts_with("value_"), na.rm = T) %>%
     select(-Key) %>%
     spread(name, Value)
 

@@ -101,7 +101,7 @@ searchTabUI <- function(id) {
               )
             )
           ),
-          DT::dataTableOutput(ns("obsDT"))
+          withSpinner(DT::dataTableOutput(ns("obsDT")))
           ,
           downloadButton(ns("downloadData"), 'Download')
         )
@@ -140,8 +140,10 @@ barChartTabUI <- function(id) {
               id = ns("inChartMenu"),
               navbarMenu(
                 "Output",
+                conditionalPanel(condition="F",tabPanel("None",
+                         uiOutput(""))),
                 tabPanel("Table",
-                         tableOutput(ns("tableDF"))),
+                         withSpinner(tableOutput(ns("tableDF")))),
                 tabPanel("Bar Chart",
                         fluidRow(column(
                            12,
@@ -149,7 +151,7 @@ barChartTabUI <- function(id) {
                          )),
                          fluidRow(column(
                            12,
-                           plotlyOutput(ns("barPlot"))
+                           withSpinner(plotlyOutput(ns("barPlot")))
                          ))),
                 tabPanel("Histogram",
                          fluidRow(column(
@@ -158,22 +160,22 @@ barChartTabUI <- function(id) {
                          )),
                          fluidRow(column(
                            12,
-                           plotOutput(ns("histPlot"))
+                           withSpinner(plotOutput(ns("histPlot")))
                          ))),
                 tabPanel("Scatter Plot",
                          fluidRow(column(
                            12,
-                           plotOutput(
+                           withSpinner(plotOutput(
                              ns("scatterPlot"),
                              dblclick = ns("scatter_dblclick"),
                              brush = brushOpts(id = ns("scatter_brush"),
                                                resetOnNew = TRUE)
-                           )
+                           ))
                          ))),
                 tabPanel("Map Plot", 
                           fluidRow(column(
                            12,
-                           leafletOutput(ns("mapPlot"))
+                           withSpinner(leafletOutput(ns("mapPlot")))
                          ))),
                 tabPanel("Line Chart",
                        fluidRow(column(
@@ -184,7 +186,7 @@ barChartTabUI <- function(id) {
                        )),
                        fluidRow(column(
                          12,
-                         plotlyOutput(ns("lineChart"))
+                         withSpinner(plotlyOutput(ns("lineChart")))
                        )))
                 )
             ),

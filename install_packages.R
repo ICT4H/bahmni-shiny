@@ -16,6 +16,9 @@ if (!"pool" %in% rownames(installed.packages()))
   devtools::install_github("rstudio/pool")
 if (!"shiny" %in% rownames(installed.packages()))
   devtools::install_github("rstudio/shiny")
+if (!"shinycssloaders" %in% rownames(installed.packages()))
+  devtools::install_github('andrewsali/shinycssloaders')
+
 
  pkgs_to_install_load <-
   c(

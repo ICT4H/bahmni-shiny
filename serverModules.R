@@ -581,25 +581,25 @@ showBarChart <- function(input,output,grp_cols,obs){
     }else if(input$inTimeInterval == "Months"){
       obs[interval] <- strftime(obs$visitDate, format="%m-%Y")  
     }
-    chartData <- obs %>% group_by_(.dots = c(grp_cols, interval)) %>% summarise(total = n())
+    chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
     prapotionalChartData <- chartData %>%
       group_by_(.dots = c(interval)) %>%
       mutate(countT= sum(total)) %>%
-      group_by_(.dots = c(grp_cols)) %>%
+      group_by_(.dots = c(lapply(grp_cols,as.name))) %>%
       mutate(percentage=round(100*total/countT,2))
     if(length(grp_cols) == 2){
       if(input$inFlip){
         grp_cols = rev(grp_cols)
       }
       if(input$inProportional){
-        plot <- ggplot(prapotionalChartData, aes_string(grp_cols[1], "percentage", fill = grp_cols[2])) + 
+        plot <- ggplot(prapotionalChartData, aes_string(as.name(grp_cols[1]), "percentage", fill = as.name(grp_cols[2]))) + 
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
           facet_grid(as.formula(paste("~", interval))) 
       }else{
         prapotionalChartData$group <- prapotionalChartData[[interval]]
-        plot <- ggplot(chartData, aes_string(grp_cols[1], "total", fill = grp_cols[2])) +
+        plot <- ggplot(chartData, aes_string(as.name(grp_cols[1]), "total", fill = as.name(grp_cols[2]))) +
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5)) +
           facet_grid(as.formula(paste("~", interval))) 
@@ -609,15 +609,15 @@ showBarChart <- function(input,output,grp_cols,obs){
       if(input$inFlip){
         barType <- position_stack(vjust = 0.5)
       }else{
-        barType <- position_dodge(width = 0.3)
+        barType <- position_dodge(width = 0.2)
       }
       if(input$inProportional){         
-        plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = grp_cols[1])) +
+        plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]))) +
           geom_bar(stat="identity", position = barType, width=0.4) +
           geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = barType) +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = ""))  
       }else{
-        plot <- ggplot(chartData, aes_string(interval, "total", fill = grp_cols[1])) +
+        plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]))) +
           geom_bar(stat="identity", position = barType, width=0.4) +
           geom_text(data=chartData, aes (label = total), size = 3, position = barType) 
       }
