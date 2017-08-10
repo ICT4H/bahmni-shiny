@@ -12,11 +12,6 @@ age <- function(from, to) {
 }
 
 fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
-  ids <- psqlPool %>%
-    tbl("sale_order") %>%
-    select("id") %>%
-    collect(n=Inf)
-
   dbOutput <- list()
   variablesToFetch <- list("BMI","BMI Status", "Systolic",
                            "Diastolic")
@@ -65,10 +60,42 @@ fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
     select(date_started,visit_id) %>%
     collect(n=Inf)
 
+  encountersForHypVisit <- mysqlPool %>%
+    tbl("encounter") %>%
+    filter(voided==0, visit_id %in% visitIds) %>% 
+    select(visit_id,uuid,patient_id) %>%
+    collect(n=Inf)
+
+  encounterUUIDs <- pull(encountersForHypVisit, uuid)
+  saleOrderLines <- psqlPool %>% 
+    tbl("sale_order_line") %>%
+    filter(external_id %in% encounterUUIDs) %>%
+    select(order_id, external_id) %>%
+    distinct(order_id, external_id) %>%
+    collect(n=Inf)
+
+  saleOrderIds <- pull(saleOrderLines, order_id)
+  saleOrders <- psqlPool %>%
+    tbl("sale_order") %>%
+    filter(id %in% saleOrderIds) %>%
+    select(amount_total, id, care_setting) %>%
+    collect(n=Inf)
+
+  visitPayments <- encountersForHypVisit %>%
+    left_join(saleOrderLines, by=c("uuid"="external_id")) %>%
+    distinct(visit_id, order_id, .keep_all=T) %>%
+    left_join(saleOrders, by=c("order_id"="id")) %>%
+    collect(n=Inf) %>%
+    group_by(visit_id, care_setting) %>%
+    summarise(amount = sum(amount_total)) %>%
+    select(visit_id, amount, care_setting)
+
   hypertensionVisits <- hypertensionVisits %>%
     inner_join(visitDates, by=c("visit_id"="visit_id")) %>%
-    select(patient_id, date_started) %>%
-    rename(visitDate = date_started) %>%
+    inner_join(visitPayments, by=c("visit_id"="visit_id")) %>%
+    select(patient_id, date_started, amount, care_setting) %>%
+    rename(`Visit Date` = date_started) %>%
+    rename(`Care Setting` = care_setting) %>%
     collect(n=Inf)
   
   patients <- mysqlPool %>%
@@ -120,7 +147,8 @@ fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
     filter(obs_datetime == max(obs_datetime)) %>%
     ungroup() %>%
     rename(ID=identifier) %>%
-    select(ID, name, value_numeric, value_text, Age, State, District, Gender, visitDate) %>%
+    select(ID, name, value_numeric, value_text,
+     Age, State, District, Gender, `Visit Date`, amount, `Care Setting`) %>%
     collect(n = Inf)
 
     #This is to filter out incorrect data entries.

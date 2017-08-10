@@ -447,6 +447,9 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
     } else if(chartOption == 6){
       showLineChart(input,output,grp_cols,obs)
       selectedValue <- "Line Chart"
+    } else if(chartOption == 7){
+      showBoxPlot(input,output,grp_cols,obs)
+      selectedValue <- "Box Plot"
     }
     updateNavbarPage(session, "inChartMenu", selected = selectedValue)
     ns <- session$ns
@@ -494,12 +497,29 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
   )
 }
 
+showBoxPlot <- function(input,output,grp_cols,obs){
+  interval <- input$inTimeInterval
+  if(interval == "Years"){
+    obs[interval] <- strftime(obs[["Visit Date"]], format="%Y")  
+  }else if(input$inTimeInterval == "Months"){
+    obs[interval] <- strftime(obs[["Visit Date"]], format="%m-%Y")  
+  }
+  if(input$inFlipBox){
+    grp_cols = rev(grp_cols)
+  }
+  output$boxPlot <- renderPlotly({
+    p <- plot_ly(obs,x = obs[[interval]], y = obs[[grp_cols[1]]]
+      , color = obs[[grp_cols[[2]]]], type = "box", hoverinfo="y")
+    p %>% layout(boxmode = "group") %>% config(displayModeBar = F)
+  })
+}
+
 showLineChart <- function(input,output,grp_cols,obs){
   interval <- input$inTimeInterval
   if(interval == "Years"){
-    obs[interval] <- strftime(obs$visitDate, format="%Y")  
+    obs[interval] <- strftime(obs[["Visit Date"]], format="%Y")  
   }else if(input$inTimeInterval == "Months"){
-    obs[interval] <- strftime(obs$visitDate, format="%m-%Y")  
+    obs[interval] <- strftime(obs[["Visit Date"]], format="%m-%Y")  
   }
   
   chartData <- obs %>% group_by_(.dots = c(grp_cols, interval)) %>% summarise(total = n())
@@ -577,9 +597,9 @@ showBarChart <- function(input,output,grp_cols,obs){
   output$barPlot <- renderPlotly({
     interval <- input$inTimeInterval
     if(interval == "Years"){
-      obs[interval] <- strftime(obs$visitDate, format="%Y")  
+      obs[interval] <- strftime(obs[["Visit Date"]], format="%Y")  
     }else if(input$inTimeInterval == "Months"){
-      obs[interval] <- strftime(obs$visitDate, format="%m-%Y")  
+      obs[interval] <- strftime(obs[["Visit Date"]], format="%m-%Y")  
     }
     chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
     prapotionalChartData <- chartData %>%
@@ -588,7 +608,7 @@ showBarChart <- function(input,output,grp_cols,obs){
       group_by_(.dots = c(lapply(grp_cols,as.name))) %>%
       mutate(percentage=round(100*total/countT,2))
     if(length(grp_cols) == 2){
-      if(input$inFlip){
+      if(input$inFlipBar){
         grp_cols = rev(grp_cols)
       }
       if(input$inProportional){
@@ -606,7 +626,7 @@ showBarChart <- function(input,output,grp_cols,obs){
       }
     }
     else{
-      if(input$inFlip){
+      if(input$inFlipBar){
         barType <- position_stack(vjust = 0.5)
       }else{
         barType <- position_dodge(width = 0.2)

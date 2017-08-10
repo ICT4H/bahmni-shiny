@@ -124,7 +124,8 @@ barChartTabUI <- function(id) {
               selectInput(
                 ns("inCharts"),
                 'Charts:',
-                choices = c("Table", "Bar Chart", "Histogram", "Scatter Plot", "Map Plot", "Line Chart"),
+                choices = c("Table", "Bar Chart", "Histogram",
+                 "Scatter Plot", "Map Plot", "Line Chart", "Box Plot"),
                 multiple = F
               ),
               checkboxInput(ns("inProportional"), "Proportional", value = F),
@@ -147,7 +148,7 @@ barChartTabUI <- function(id) {
                 tabPanel("Bar Chart",
                         fluidRow(column(
                            12,
-                           checkboxInput(ns("inFlip"), "Flip:", value = F)
+                           checkboxInput(ns("inFlipBar"), "Flip:", value = F)
                          )),
                          fluidRow(column(
                            12,
@@ -187,6 +188,15 @@ barChartTabUI <- function(id) {
                        fluidRow(column(
                          12,
                          withSpinner(plotlyOutput(ns("lineChart")))
+                       ))),
+                tabPanel("Box Plot",
+                      fluidRow(column(
+                           12,
+                           checkboxInput(ns("inFlipBox"), "Flip:", value = F)
+                         )),
+                       fluidRow(column(
+                         12,
+                         withSpinner(plotlyOutput(ns("boxPlot")))
                        )))
                 )
             ),
