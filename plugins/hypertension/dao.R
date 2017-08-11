@@ -66,12 +66,12 @@ fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
     select(visit_id,uuid,patient_id) %>%
     collect(n=Inf)
 
-  encounterUUIDs <- pull(encountersForHypVisit, uuid)
-  saleOrderLines <- psqlPool %>% 
-    tbl("sale_order_line") %>%
+  encounterUUIDs <- pull(encountersForHypVisit, uuid)[]
+  query <- "SELECT distinct order_id,external_id from sale_order_line"
+  saleOrderLines <- psqlPool %>%
+    dbGetQuery(query) %>%
     filter(external_id %in% encounterUUIDs) %>%
     select(order_id, external_id) %>%
-    distinct(order_id, external_id) %>%
     collect(n=Inf)
 
   saleOrderIds <- pull(saleOrderLines, order_id)

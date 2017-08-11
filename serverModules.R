@@ -508,9 +508,10 @@ showBoxPlot <- function(input,output,grp_cols,obs){
     grp_cols = rev(grp_cols)
   }
   output$boxPlot <- renderPlotly({
-    p <- plot_ly(obs,x = obs[[interval]], y = obs[[grp_cols[1]]]
-      , color = obs[[grp_cols[[2]]]], type = "box", hoverinfo="y")
-    p %>% layout(boxmode = "group") %>% config(displayModeBar = F)
+    p <- plot_ly(obs,x = obs[[interval]], y = obs[[grp_cols[[1]]]]
+      , color = obs[[grp_cols[[2]]]], type = "box")
+    p %>% layout(boxmode = "group", xaxis = list(title = interval,showgrid = T)) %>%
+      config(displayModeBar = F)
   })
 }
 

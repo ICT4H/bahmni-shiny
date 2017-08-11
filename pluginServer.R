@@ -45,7 +45,12 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
     mysqlPool <- getMysqlConnectionPool()
     psqlPool <- getPsqlConnectionPool()
     source(dataSourceFile,local=envir)
+    showModal(modalDialog(
+      withSpinner(p("")),
+      title = "Fetching Data",
+      footer = NULL, size = "s"))
     mainTable$data <- envir$fetchData(mysqlPool, psqlPool, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
+    removeModal()
     disconnectFromDb(mysqlPool)
     disconnectFromDb(psqlPool)
     envir <- NULL
@@ -56,7 +61,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
       filter = "top"
     )
   })
-  
+
   observeEvent(input$inApply, {
     updateCheckboxGroupInput(
       session,
@@ -70,6 +75,9 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
                           value = T)
     }
     else{
+      showModal(modalDialog(
+        "There is no data available for selected data range!"
+      ))
       updateCheckboxInput(session,
                           "incheckbox",
                           value = F)
