@@ -21,10 +21,16 @@ contentPanel <- function(input, output, session){
 
   observeEvent(input$inTabPanel, {
     if (input$inTabPanel == "Bar and Charts") {
-      updateCheckboxGroupInput(
+      updateSelectInput(
         session,
-        "barChart-inDimensions",
-        choices = names(mainTable$data),
+        "barChart-inFactor1",
+        choices = c("",names(mainTable$data)),
+        selected = NULL
+      )
+      updateSelectInput(
+        session,
+        "barChart-inFactor2",
+        choices = c("",names(mainTable$data)),
         selected = NULL
       )
       updateSelectInput(
@@ -379,10 +385,7 @@ searchTab <- function(input, output, session, mainTable) {
 }
 
 barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) {
-  #scatter plot ranges
   scatter_ranges <- reactiveValues(x = NULL, y = NULL)
-  # When a double-click happens, check if there's a brush on the plot.
-  # If so, zoom to the brush bounds; if not, reset the zoom.
   observeEvent(input$scatter_dblclick, {
     brush <- input$scatter_brush
     if (!is.null(brush)) {
@@ -397,13 +400,17 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
   #Charts and Graphs
   observeEvent(input$inShow, {
     chartOption <- input$inCharts
-    grp_cols <- input$inDimensions
-    if(length(grp_cols) == 0){
+    if(identical(input$inFactor1, "")){
       showModal(modalDialog(
-        "Please select atleast one variable!"
+        "Please select Factor 1!"
       ))
       return()
     }
+    grp_cols <- c(input$inFactor1)
+    if(!identical(input$inFactor2, "")){
+      grp_cols <- c(grp_cols, input$inFactor2)  
+    }
+    
     obs <- mainTable$data
     dots <- lapply(grp_cols, as.symbol)
     if (chartOption == 1) {
@@ -504,18 +511,23 @@ showBoxPlot <- function(input,output,grp_cols,obs){
   }else if(input$inTimeInterval == "Months"){
     obs[interval] <- strftime(obs[["Visit Date"]], format="%m-%Y")  
   }
-  if(input$inFlipBox){
-    grp_cols = rev(grp_cols)
-  }
   output$boxPlot <- renderPlotly({
-    p <- plot_ly(obs,x = obs[[interval]], y = obs[[grp_cols[[1]]]]
-      , color = obs[[grp_cols[[2]]]], type = "box")
+    p <- plot_ly(obs,x = obs[[interval]], y = obs[[grp_cols[[2]]]]
+      , color = obs[[grp_cols[[1]]]], type = "box")
     p %>% layout(boxmode = "group", xaxis = list(title = interval,showgrid = T)) %>%
       config(displayModeBar = F)
   })
 }
 
 showLineChart <- function(input,output,grp_cols,obs){
+  if(length(grp_cols) > 1){
+    showNotification(
+      "Line Chart works for just one Factor, We will consider Factor 1!",
+      type = "warning",
+      duration = NULL
+    )
+    grp_cols <- grp_cols[1]
+  }
   interval <- input$inTimeInterval
   if(interval == "Years"){
     obs[interval] <- strftime(obs[["Visit Date"]], format="%Y")  
@@ -589,12 +601,6 @@ showGoogleMap <- function(output,grp_cols,obs){
 }
 
 showBarChart <- function(input,output,grp_cols,obs){
-  if(length(grp_cols) > 2){
-    showModal(modalDialog(
-      "Bar Chart works with only one or two variables!"
-    ))
-    return()
-  }
   output$barPlot <- renderPlotly({
     interval <- input$inTimeInterval
     if(interval == "Years"){
@@ -613,14 +619,14 @@ showBarChart <- function(input,output,grp_cols,obs){
         grp_cols = rev(grp_cols)
       }
       if(input$inProportional){
-        plot <- ggplot(prapotionalChartData, aes_string(as.name(grp_cols[1]), "percentage", fill = as.name(grp_cols[2]))) + 
+        plot <- ggplot(prapotionalChartData, aes_string(as.name(grp_cols[2]), "percentage", fill = as.name(grp_cols[1]))) + 
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
           facet_grid(as.formula(paste("~", interval))) 
       }else{
         prapotionalChartData$group <- prapotionalChartData[[interval]]
-        plot <- ggplot(chartData, aes_string(as.name(grp_cols[1]), "total", fill = as.name(grp_cols[2]))) +
+        plot <- ggplot(chartData, aes_string(as.name(grp_cols[2]), "total", fill = as.name(grp_cols[1]))) +
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5)) +
           facet_grid(as.formula(paste("~", interval))) 

@@ -14,12 +14,19 @@ plugin <- function(input, output, session, dataSourceFile){
   )
   observeEvent(input$inTabPanel, {
     if (input$inTabPanel == "Bar and Charts") {
-      updateCheckboxGroupInput(
+      updateSelectInput(
         session,
-        "barChart-inDimensions",
-        choices = names(mainTable$data),
+        "barChart-inFactor1",
+        choices = c("",names(mainTable$data)),
         selected = NULL
       )
+      updateSelectInput(
+        session,
+        "barChart-inFactor2",
+        choices = c("",names(mainTable$data)),
+        selected = NULL
+      )
+
       updateSelectInput(
         session,
         "barChart-inCharts",
@@ -50,7 +57,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
       title = "Fetching Data",
       footer = NULL, size = "s"))
     mainTable$data <- envir$fetchData(mysqlPool, psqlPool, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
-    removeModal()
+    # removeModal()
     disconnectFromDb(mysqlPool)
     disconnectFromDb(psqlPool)
     envir <- NULL

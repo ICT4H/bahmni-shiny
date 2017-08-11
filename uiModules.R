@@ -119,7 +119,9 @@ barChartTabUI <- function(id) {
             
             # Sidebar with a slider input
             sidebarPanel(
-              checkboxGroupInput(ns("inDimensions"), 'Columns:',
+              selectInput(ns("inFactor1"), 'Choose Factor 1:',
+                                 choices = c("")),
+              selectInput(ns("inFactor2"), 'Choose Factor 2:',
                                  choices = c("")),
               selectInput(
                 ns("inCharts"),
@@ -190,10 +192,6 @@ barChartTabUI <- function(id) {
                          withSpinner(plotlyOutput(ns("lineChart")))
                        ))),
                 tabPanel("Box Plot",
-                      fluidRow(column(
-                           12,
-                           checkboxInput(ns("inFlipBox"), "Flip:", value = F)
-                         )),
                        fluidRow(column(
                          12,
                          withSpinner(plotlyOutput(ns("boxPlot")))
