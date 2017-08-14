@@ -42,12 +42,17 @@ ui <- fluidPage(
   tags$style("#shiny-modal .shiny-spinner-placeholder {height:150px !important}"),
   useShinyjs(),
   titlePanel("Welcome!"),
+  ## Login module;
+  div(class = "login",
+      uiOutput("uiLogin"),
+      textOutput("pass")
+  ), 
   withSpinner(uiOutput("tabs"))
 )
 
 properties <- read.properties("app.properties")
 
-server <- function(input, output, session) {
+initializeApp <- function(input, output, session) {
   pluginTabs <- list()
   pathToPluginsFolder <- properties$pluginsFolder
   files <- list.files(pathToPluginsFolder)
@@ -76,6 +81,15 @@ server <- function(input, output, session) {
      callModule(plugin, tolower(pluginTab$name), pluginTab$dataSourceFile)
   })
   # callModule(contentPanel, "observations")
+}
+
+server <- function(input, output, session) {
+  source("login.R", local=T)
+  observe({
+    if(USER$Logged){
+      initializeApp(input, output, session)
+    }
+  })
 }
 
 shinyApp(ui = ui, server = server)
