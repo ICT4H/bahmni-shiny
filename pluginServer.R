@@ -57,7 +57,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
       title = "Fetching Data",
       footer = NULL, size = "s"))
     mainTable$data <- envir$fetchData(mysqlPool, psqlPool, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
-    # removeModal()
+    removeModal()
     disconnectFromDb(mysqlPool)
     disconnectFromDb(psqlPool)
     envir <- NULL
