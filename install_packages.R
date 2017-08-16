@@ -41,6 +41,7 @@ if (!"shinycssloaders" %in% rownames(installed.packages()))
     "plotly",
     "ggmap",
     "leaflet",
+    "bcrypt",
     "DescTools"
   )
 lapply(pkgs_to_install_load, FUN = function(pkg){

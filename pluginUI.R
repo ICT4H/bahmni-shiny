@@ -1,6 +1,7 @@
 pluginUI <- function(id) {
   ns <- NS(id)
   tagList(
+    titlePanel("Welcome!"),
     tabsetPanel(
       id=ns("inTabPanel"),
       tabPanel("Search", pluginSearchTabUI(ns("search"))),
@@ -16,7 +17,7 @@ pluginSearchTabUI <- function(id) {
     p(""),
     dateRangeInput(ns("inDateRange"),
       label = 'Range',
-      start = Sys.Date() - 30,
+      start = Sys.Date() - 365,
       end = Sys.Date()
     ),
     actionButton(ns("inApply"), "Apply"),
