@@ -70,18 +70,15 @@ initializeApp <- function(input, output, session) {
   })
 
   output$tabs <- renderUI({
-    myTabs <- list("Observation")
-    restTabs <- list("Search",tabPanel("Observations",contentPanelUI("observations")),widths = c(2,10))
     newTabs <- lapply(pluginTabs,FUN = function(tab){
       tabPanel(tab$name, tab$ui)
     })
-    myTabs <- c(myTabs, newTabs, restTabs)
+    myTabs <- c(newTabs, list(widths = c(2,10)))
     do.call(navlistPanel, myTabs)
   })
   lapply(pluginTabs, FUN = function(pluginTab){
      callModule(plugin, tolower(pluginTab$name), pluginTab$dataSourceFile)
   })
-  # callModule(contentPanel, "observations")
 }
 
 server <- function(input, output, session) {

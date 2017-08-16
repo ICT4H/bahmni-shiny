@@ -159,7 +159,7 @@ fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
   obsForVariables <- obsForVariables %>% 
     gather(Key, Value, starts_with("value_"), na.rm = T) %>%
     select(-Key) %>%
-    spread(name, Value)
+    spread(name, Value, convert = T)
 
   obsForVariables
 }
