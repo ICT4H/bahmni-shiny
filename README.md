@@ -29,4 +29,11 @@ sudo R -f install_packages.R
 		`site_dir /srv/shiny-server` to `app_dir /srv/shiny-server/bahmni-shiny`
 	- add line `sanitize_errors false;` at the end of `location` section
 
+#### Create Users table in db for the first time
+	- cd /vagrant/
+	- touch shiny.sqllite
+	- sqlite3 shiny.sqllite
+	- create table users(username varchar primary key, password varchar);
+	- insert into users values('demo','$2a$12$aZyMtR.kaSqrpK2h/ID43utwz8bS6g.aovQW9z0/kvhlcnwYPfsfe');
+
 

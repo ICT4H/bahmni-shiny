@@ -42,6 +42,7 @@ if (!"shinycssloaders" %in% rownames(installed.packages()))
     "ggmap",
     "leaflet",
     "bcrypt",
+    "RSQLite",
     "DescTools"
   )
 lapply(pkgs_to_install_load, FUN = function(pkg){

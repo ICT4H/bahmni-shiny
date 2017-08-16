@@ -25,6 +25,7 @@ pkgs_to_load <-
     "leaflet",
     "plotly",
     "bcrypt",
+    "RSQLite",
     "shinycssloaders",
     "DescTools"
   )

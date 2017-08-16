@@ -1,6 +1,9 @@
 #### Log in module ###
-PASSWORD <- data.frame(username = "admin", password = "$2a$12$hF7youFlKdG2BE9rAVPSNu1mPnOcMEUM/x1y7oUv.qbSC0Xx2ckMe", stringsAsFactors=F)
-USER <- reactiveValues(Logged = FALSE)
+con = dbConnect(SQLite(), dbname="shiny.sqlite")
+myQuery <- dbSendQuery(con, "SELECT username,password FROM users")
+users <- dbFetch(myQuery, n = Inf)
+USER <- reactiveValues(Logged = F)
+DBI::dbDisconnect(con)
 
 output$uiLogin <- renderUI({
   if (USER$Logged == FALSE) {
@@ -15,12 +18,12 @@ output$uiLogin <- renderUI({
 
 observeEvent(input$Login, {
   if (USER$Logged == FALSE) {
-    Username <- isolate(input$userName)
-    Password <- isolate(input$password)
-    rowNum <- which(PASSWORD$username == Username)
+    username <- isolate(input$userName)
+    password <- isolate(input$password)
+    rowNum <- which(users$username == username)
     if(length(rowNum) > 0){
-      salt <- PASSWORD[rowNum,]$password
-      if(checkpw(Password,salt)){
+      salt <- users[rowNum,]$password
+      if(checkpw(password,salt)){
         USER$Logged <- TRUE
         return ()        
       }
