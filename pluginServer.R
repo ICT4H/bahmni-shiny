@@ -47,12 +47,20 @@ plugin <- function(input, output, session, dataSourceFile, pluginName){
 
 pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, pluginName) {
   existingColumnDefs <- reactiveValues(data = NULL)
-  colDefFileName <- paste("derivedColums/",pluginName,".json",sep="")
+  colDefFileName <- paste("derivedColumns/",pluginName,".json",sep="")
   if(file.exists(colDefFileName)){
     existingColumnDefs$data <- fromJSON(file=colDefFileName) 
   }else{
     existingColumnDefs$data <- list()
   }
+
+  observe({
+    updateSelectInput(session,
+      "inColumnDefs",
+      choices = names(existingColumnDefs$data)
+    )
+  })
+
   observeEvent(input$inApply, {
     dateRange <- as.character(input$inDateRange)
     envir <- new.env()
@@ -159,8 +167,6 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
         )
       } 
       isNumericColumn <- mainTable$data %>% map_lgl(is.numeric)
-      print(class(mainTable$data$amount))
-      print(class(mainTable$data$BMI))
       numericColumns <- names(mainTable$data)[isNumericColumn]
       dateColumns <- names(mainTable$data)[mainTable$data %>%
                                                 map_lgl(isDate)]
@@ -209,6 +215,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     result$usingTwoVars <- input$inTwoVariables
     result$firstColName <- input$inNumericCols
     result$secondColName <- input$inNumericColsOther
+    result$dateColName <- input$inDateCols
     result$levels <- catColumns$data
     
     existingColumnDefs$data[[columnName]] <- result
@@ -218,20 +225,19 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
   
   #Mutate to add new categorical column to dataframe
   observeEvent(input$inApplyColumn, {
-    datatype <- input$inDatatype
-    columnName  <- input$inGroupName
-    levelnames <- catColumns$data %>% map_chr("Name")
-    
+    columnName <- input$inColumnDefs
+    colDef <- existingColumnDefs$data[[columnName]]
+    datatype <- colDef$datatype
+    usingTwoVars <- colDef$usingTwoVars
+
     if(datatype == 1){
-      ranges <- catColumns$data %>% map("Range")
-      if(input$inTwoVariables){
-        df_list <- deriveWithTwoVarsNumeric(input, mainTable, levelnames, ranges)
+      if(usingTwoVars){
+        df_list <- deriveWithTwoVarsNumeric(colDef,columnName, mainTable)
       }else{
-        df_list <- deriveWithOneVarNumeric(input, mainTable, levelnames, ranges)
+        df_list <- deriveWithOneVarNumeric(colDef, columnName, mainTable)
       }      
     }else{
-      dates <- catColumns$data %>% map("AfterDate")
-      df_list <- deriveWithDateVariable(input, mainTable, levelnames, dates)
+      df_list <- deriveWithDateVariable(colDef, columnName, mainTable)
     }
 
     df_list <- df_list %>% map(function(x) {
@@ -257,9 +263,11 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
   })
 }
 
-deriveWithDateVariable <- function(input, mainTable, levelnames, dates) {
-  columnName  <- input$inGroupName
-  dateColumn <- input$inDateCols
+deriveWithDateVariable <- function(colDef,columnName, mainTable) {
+  levelnames <- colDef$levels %>% map_chr("Name")
+  dateColumn <- colDef$dateColName
+  dates <- catColumns$data %>% map("AfterDate")
+
   mutate_call <- lazyeval::interp( ~ a , a = as.name(dateColumn))
   mainTable$data <- mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), dateColumn))
 
@@ -271,9 +279,11 @@ deriveWithDateVariable <- function(input, mainTable, levelnames, dates) {
   }, df = mainTable$data)
 }
 
-deriveWithOneVarNumeric <- function(input, mainTable, levelnames, ranges) {
-  columnName  <- input$inGroupName
-  firstColName <- input$inNumericCols
+deriveWithOneVarNumeric <- function(colDef, columnName, mainTable) {
+  firstColName <- colDef$firstColName
+  ranges <- colDef$levels %>% map("Range")
+  levelnames <- colDef$levels %>% map_chr("Name")
+
   mutate_call <- lazyeval::interp( ~ a , a = as.name(firstColName))
   mainTable$data <-
     mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), firstColName))
@@ -286,10 +296,11 @@ deriveWithOneVarNumeric <- function(input, mainTable, levelnames, ranges) {
   }, df = mainTable$data)
 }
 
-deriveWithTwoVarsNumeric <- function(input, mainTable, levelnames, ranges) {
-  columnName  <- input$inGroupName
-  firstColName <- input$inNumericCols
-  secondColName <- input$inNumericColsOther
+deriveWithTwoVarsNumeric <- function(colDef, columnName, mainTable) {
+  firstColName <- colDef$firstColName
+  secondColName <- colDef$secondColName
+  ranges <- colDef$levels %>% map("Range")
+  levelnames <- colDef$levels %>% map_chr("Name")
   
   mutate_call <- lazyeval::interp( ~ a , a = as.name(firstColName))
   mainTable$data <-

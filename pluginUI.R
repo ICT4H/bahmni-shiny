@@ -91,6 +91,14 @@ pluginSearchTabUI <- function(id) {
                   3,
                   actionButton(ns("inSaveColDef"), "Save Column Definition", class = 'btnbottomAlign')
                 )),
+                fluidRow(column(4,
+                         selectInput(ns("inColumnDefs"), "Saved Column Definitions:", choices =
+                                     c(""))
+                  ),
+                  column(2,
+                         actionButton(
+                           ns("inApplyColumn"), label = "Apply Column", class = 'btnbottomAlign'
+                         ))),
                 style = "info"
               )
             )
