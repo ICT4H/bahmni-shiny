@@ -54,6 +54,9 @@ ui <- fluidPage(
 properties <- read.properties("app.properties")
 
 initializeApp <- function(input, output, session) {
+  if(!dir.exists("derivedColumns")){
+    dir.create("derivedColumns")
+  }
   pluginTabs <- list()
   pathToPluginsFolder <- properties$pluginsFolder
   files <- list.files(pathToPluginsFolder)
@@ -77,7 +80,7 @@ initializeApp <- function(input, output, session) {
     do.call(navlistPanel, myTabs)
   })
   lapply(pluginTabs, FUN = function(pluginTab){
-     callModule(plugin, tolower(pluginTab$name), pluginTab$dataSourceFile)
+     callModule(plugin, tolower(pluginTab$name), pluginTab$dataSourceFile, pluginTab$name)
   })
 }
 

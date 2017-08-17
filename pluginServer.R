@@ -1,9 +1,9 @@
-plugin <- function(input, output, session, dataSourceFile){
+plugin <- function(input, output, session, dataSourceFile, pluginName){
   mainTable <- reactiveValues(data = NULL)
   mainPlot <- reactiveValues(data = NULL)
   tableData <- reactiveValues(data = NULL)
   
-  callModule(pluginSearchTab, "search", mainTable, dataSourceFile)
+  callModule(pluginSearchTab, "search", mainTable, dataSourceFile, pluginName)
   callModule(barChartTab, "barChart", mainTable, tableData, mainPlot)
   selectChoices <-
     reactiveValues(data = list(
@@ -45,7 +45,14 @@ plugin <- function(input, output, session, dataSourceFile){
   })
 }
 
-pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
+pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, pluginName) {
+  existingColumnDefs <- reactiveValues(data = NULL)
+  colDefFileName <- paste("derivedColums/",pluginName,".json",sep="")
+  if(file.exists(colDefFileName)){
+    existingColumnDefs$data <- fromJSON(file=colDefFileName) 
+  }else{
+    existingColumnDefs$data <- list()
+  }
   observeEvent(input$inApply, {
     dateRange <- as.character(input$inDateRange)
     envir <- new.env()
@@ -193,6 +200,20 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile) {
     updateNumericInput(session, "inStartRangeOther", value = "")
     updateNumericInput(session, "inEndRangeOther", value = "")
     updateTextInput(session, "inLevelName", value = "")
+  })
+
+  observeEvent(input$inSaveColDef, {
+    result <- list()
+    columnName  <- input$inGroupName
+    result$datatype <- input$inDatatype
+    result$usingTwoVars <- input$inTwoVariables
+    result$firstColName <- input$inNumericCols
+    result$secondColName <- input$inNumericColsOther
+    result$levels <- catColumns$data
+    
+    existingColumnDefs$data[[columnName]] <- result
+    
+    write_lines(toJSON(existingColumnDefs$data), colDefFileName)
   })
   
   #Mutate to add new categorical column to dataframe

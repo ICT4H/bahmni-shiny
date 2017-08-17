@@ -31,8 +31,8 @@ sudo R -f install_packages.R
 
 #### Create Users table in db for the first time
 	- cd /vagrant/
-	- touch shiny.sqllite
-	- sqlite3 shiny.sqllite
+	- touch shiny.sqlite
+	- sqlite3 shiny.sqlite
 	- create table users(username varchar primary key, password varchar);
 	- insert into users values('demo','$2a$12$aZyMtR.kaSqrpK2h/ID43utwz8bS6g.aovQW9z0/kvhlcnwYPfsfe');
 

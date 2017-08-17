@@ -89,7 +89,7 @@ pluginSearchTabUI <- function(id) {
                 ),
                 column(
                   3,
-                  actionButton(ns("inApplyColumn"), "Apply", class = 'btnbottomAlign')
+                  actionButton(ns("inSaveColDef"), "Save Column Definition", class = 'btnbottomAlign')
                 )),
                 style = "info"
               )
