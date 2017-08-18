@@ -210,7 +210,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
 
   observeEvent(input$inSaveColDef, {
     result <- list()
-    columnName  <- input$inGroupName
+    columnName <- input$inGroupName
     result$datatype <- input$inDatatype
     result$usingTwoVars <- input$inTwoVariables
     result$firstColName <- input$inNumericCols
@@ -221,6 +221,45 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     existingColumnDefs$data[[columnName]] <- result
     
     write_lines(toJSON(existingColumnDefs$data), colDefFileName)
+    updateSelectizeInput(session, "inCatLevels", choices = c(""))
+    catColumns$data <- list()
+  })
+
+  observeEvent(input$inColumnDefs, {
+    columnName <- input$inColumnDefs
+    req(input$inColumnDefs)
+    colDef <- existingColumnDefs$data[[columnName]]
+
+    outputColDef <- c()
+    outputColDef['Datatype'] <- 'Numeric'
+    outputColDef['Uses Two Variables'] <- colDef$usingTwoVars
+    if(colDef$usingTwoVars){
+      outputColDef['First Variable'] <- colDef$firstColName
+      outputColDef['Second Variable'] <- colDef$secondColName
+    }else{
+      outputColDef['Variable'] <- colDef$firstColName
+    }
+    
+    outputLevels <- lapply(colDef$levels, FUN=function(level){
+      levelOutput <- list()
+      levelOutput["Name"] <- level$Name
+      if(colDef$usingTwoVars){
+        levelOutput["Range For First Variable"] <- paste(level[['Range']][['From']],level[['Range']][['To']], sep=" - ")
+        levelOutput["Range For Second Variable"] <- paste(level[['Range']][['FromOther']],level[['Range']][['ToOther']], sep=" - ")
+      }else{
+        levelOutput["Range For Variable"] <- paste(level[['Range']][['From']],level[['Range']][['To']], sep=" - ")
+      }
+      levelOutput
+    })
+    
+    output$savedColumnDef <- renderTable(
+      as.matrix(outputColDef), rownames = T, colnames = F, bordered = T
+    )
+    output$columnLevels <- renderTable(
+      do.call("rbind", outputLevels), bordered = T, caption = "Categories",
+       caption.placement = getOption("xtable.caption.placement", "top"),
+        caption.width = getOption("xtable.caption.width", NULL)
+    )
   })
   
   #Mutate to add new categorical column to dataframe

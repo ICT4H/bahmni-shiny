@@ -50,65 +50,75 @@ pluginSearchTabUI <- function(id) {
             condition = paste("input[['", id, "-incheckbox']]==1", sep = "") ,
             bsCollapse(
               id = ns("inCollapseAddCols"),
-              bsCollapsePanel(
-                "Add Columns",
-                fluidRow(
-                  column(3,
-                    selectInput(ns("inDatatype"), "DataType", choices=c(
-                      Numeric = 1,
-                      Datetime = 2
-                      ), selected = 1
-                    )
-                  ),
-                  column(3,
-                    textInput(ns("inGroupName"), "New Column Name", value="")
-                  ),
-                  conditionalPanel(
-                    condition = paste("input[['", id, "-inDatatype']]==1", sep = ""),
-                    column(3,
-                      checkboxInput(ns("inTwoVariables"), "Using Two Variables", value = F)
-                    )
-                  )
-                ),
-                uiForNumericVariables(id, ns),
-                uiForDateTimeVariables(id, ns),
-                fluidRow(
-                  column(2,
-                         textInput(ns("inLevelName"), "Name", value =
-                                     "")
-                  ),
-                  column(2,
-                         actionButton(
-                           ns("inAddLevel"), label = "Add Level", class = 'btnbottomAlign'
-                         ))
-                ),
-                fluidRow(column(
-                  3,
-                  selectizeInput(ns("inCatLevels"), "Levels:", choices =
-                                   c(""))
-                ),
-                column(
-                  3,
-                  actionButton(ns("inSaveColDef"), "Save Column Definition", class = 'btnbottomAlign')
-                )),
-                fluidRow(column(4,
-                         selectInput(ns("inColumnDefs"), "Saved Column Definitions:", choices =
-                                     c(""))
-                  ),
-                  column(2,
-                         actionButton(
-                           ns("inApplyColumn"), label = "Apply Column", class = 'btnbottomAlign'
-                         ))),
-                style = "info"
-              )
-            )
-          ),
-          DT::dataTableOutput(ns("obsDT"))
-          ,
-          downloadButton(ns("downloadData"), 'Download')
+              uiForDerivedColumns(id,ns)
+            ),
+            DT::dataTableOutput(ns("obsDT"))
+            ,
+            downloadButton(ns("downloadData"), 'Download')
+          )
         )
       )
     )
+  )
+}
+
+uiForDerivedColumns <- function(id, ns){
+  bsCollapsePanel(
+    "Add Columns",
+    tabsetPanel(
+      tabPanel("Saved Column Definitions",
+        selectInput(ns("inColumnDefs"), "Saved Column Definitions:", choices =
+            c("")),
+        tableOutput(ns("savedColumnDef")),
+        tableOutput(ns("columnLevels")),
+        actionButton(
+          ns("inApplyColumn"), label = "Apply Column", class = 'btnbottomAlign'
+        )
+      ),
+      tabPanel("New Column Definition",
+        fluidRow(
+          column(3,
+            selectInput(ns("inDatatype"), "DataType", choices=c(
+              Numeric = 1,
+              Datetime = 2
+              ), selected = 1
+            )
+          ),
+          column(3,
+            textInput(ns("inGroupName"), "New Column Name", value="")
+          ),
+          conditionalPanel(
+            condition = paste("input[['", id, "-inDatatype']]==1", sep = ""),
+            column(3,
+              checkboxInput(ns("inTwoVariables"), "Using Two Variables", value = F)
+            )
+          )
+        ),
+        uiForNumericVariables(id, ns),
+        uiForDateTimeVariables(id, ns),
+        fluidRow(
+          column(2,
+                 textInput(ns("inLevelName"), "Name", value =
+                             "")
+          ),
+          column(2,
+                 actionButton(
+                   ns("inAddLevel"), label = "Add Level", class = 'btnbottomAlign'
+                 ))
+        ),
+        fluidRow(
+          column(3,
+            selectizeInput(ns("inCatLevels"), "Levels:", choices =
+                           c(""))
+          ),
+          column(
+            3,
+            actionButton(ns("inSaveColDef"), "Save Column Definition", class = 'btnbottomAlign')
+          )
+        )
+      )
+    ),
+    style = "info"
   )
 }
 

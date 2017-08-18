@@ -34,8 +34,6 @@ lapply(pkgs_to_load, library, character.only = TRUE)
 options(shiny.trace = F)
 
 source("connector.R")
-source("uiModules.R")
-source("serverModules.R")
 source("pluginServer.R")
 source("pluginUI.R")
 
