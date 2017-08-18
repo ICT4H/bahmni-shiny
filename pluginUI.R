@@ -79,23 +79,18 @@ uiForDerivedColumns <- function(id, ns){
         fluidRow(
           column(3,
             selectInput(ns("inDatatype"), "DataType", choices=c(
-              Numeric = 1,
-              Datetime = 2
+              "Numeric"
               ), selected = 1
             )
           ),
           column(3,
             textInput(ns("inGroupName"), "New Column Name", value="")
           ),
-          conditionalPanel(
-            condition = paste("input[['", id, "-inDatatype']]==1", sep = ""),
-            column(3,
-              checkboxInput(ns("inTwoVariables"), "Using Two Variables", value = F)
-            )
+          column(3,
+            checkboxInput(ns("inTwoVariables"), "Using Two Variables", value = F)
           )
         ),
         uiForNumericVariables(id, ns),
-        uiForDateTimeVariables(id, ns),
         fluidRow(
           column(2,
                  textInput(ns("inLevelName"), "Name", value =
@@ -122,20 +117,8 @@ uiForDerivedColumns <- function(id, ns){
   )
 }
 
-uiForDateTimeVariables <- function(id, ns){
-  conditionalPanel(
-    condition = paste("input[['", id, "-inDatatype']]==2", sep = ""),
-    fluidRow(
-      column(4, selectizeInput(ns("inDateCols"), "DateTime Columns:", choices=c(""))
-      ),
-      column(3, dateInput(ns("inDaysStart"), "After"))
-    )
-  )
-}
-
 uiForNumericVariables <- function(id, ns){
-    conditionalPanel(
-    condition = paste("input[['", id, "-inDatatype']]==1", sep = ""),
+  tagList(
     fluidRow(
       column(4,
              selectizeInput(

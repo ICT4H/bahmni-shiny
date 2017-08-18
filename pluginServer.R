@@ -168,8 +168,6 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
       } 
       isNumericColumn <- mainTable$data %>% map_lgl(is.numeric)
       numericColumns <- names(mainTable$data)[isNumericColumn]
-      dateColumns <- names(mainTable$data)[mainTable$data %>%
-                                                map_lgl(isDate)]
       
       updateSelectizeInput(session,
                            "inNumericCols",
@@ -178,10 +176,6 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
       updateSelectizeInput(session,
                            "inNumericColsOther",
                            choices = numericColumns,
-                           selected = NULL)
-      updateSelectizeInput(session,
-                           "inDateCols",
-                           choices = dateColumns,
                            selected = NULL)
     }
   })
@@ -195,8 +189,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
         "To" = as.numeric(input$inEndRange),
         "FromOther" = as.numeric(input$inStartRangeOther),
         "ToOther" = as.numeric(input$inEndRangeOther)
-      ),
-      "AfterDate" = input$inAfterDate
+      )
     )
     catColumns$data[[length(catColumns$data) + 1]] = newlevel
     levelnames <- catColumns$data %>% map_chr("Name")
@@ -231,7 +224,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     colDef <- existingColumnDefs$data[[columnName]]
 
     outputColDef <- c()
-    outputColDef['Datatype'] <- 'Numeric'
+    outputColDef['Datatype'] <- colDef$datatype
     outputColDef['Uses Two Variables'] <- colDef$usingTwoVars
     if(colDef$usingTwoVars){
       outputColDef['First Variable'] <- colDef$firstColName
@@ -268,16 +261,11 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     colDef <- existingColumnDefs$data[[columnName]]
     datatype <- colDef$datatype
     usingTwoVars <- colDef$usingTwoVars
-
-    if(datatype == 1){
-      if(usingTwoVars){
-        df_list <- deriveWithTwoVarsNumeric(colDef,columnName, mainTable)
-      }else{
-        df_list <- deriveWithOneVarNumeric(colDef, columnName, mainTable)
-      }      
+    if(usingTwoVars){
+      df_list <- deriveWithTwoVarsNumeric(colDef,columnName, mainTable)
     }else{
-      df_list <- deriveWithDateVariable(colDef, columnName, mainTable)
-    }
+      df_list <- deriveWithOneVarNumeric(colDef, columnName, mainTable)
+    }      
 
     df_list <- df_list %>% map(function(x) {
       filter_criteria <-
@@ -300,22 +288,6 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     updateSelectizeInput(session, "inCatLevels", choices = c(""))
     catColumns$data <- list()
   })
-}
-
-deriveWithDateVariable <- function(colDef,columnName, mainTable) {
-  levelnames <- colDef$levels %>% map_chr("Name")
-  dateColumn <- colDef$dateColName
-  dates <- catColumns$data %>% map("AfterDate")
-
-  mutate_call <- lazyeval::interp( ~ a , a = as.name(dateColumn))
-  mainTable$data <- mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), dateColumn))
-
-  levelnames %>% map2(.y = dates, function(x, y, df) {
-    mutate_call_ip <- lazyeval::interp( ~ ifelse(as.Date(a) >= y[[1]] & as.Date(a) <= Sys.Date()+1, x[[1]], NA) ,
-                        a = as.name(dateColumn))
-    df <-
-      df %>% mutate_(.dots = setNames(list(mutate_call_ip), columnName))
-  }, df = mainTable$data)
 }
 
 deriveWithOneVarNumeric <- function(colDef, columnName, mainTable) {

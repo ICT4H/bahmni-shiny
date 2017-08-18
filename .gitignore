@@ -4,4 +4,5 @@
 .RData
 .Ruserdata
 .vagrant
+derivedColumns/*
 shiny.sqlite
