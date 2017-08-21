@@ -20,7 +20,7 @@ pluginSearchTabUI <- function(id) {
       start = Sys.Date() - 365,
       end = Sys.Date()
     ),
-    actionButton(ns("inApply"), "Apply"),
+    actionButton(ns("inApply"), "Apply", class="btn-primary"),
     conditionalPanel(condition = "1==0",
                      checkboxInput(
                        ns("incheckbox"), label = "Choice A", value = F
@@ -33,7 +33,8 @@ pluginSearchTabUI <- function(id) {
         label = "Hide Column Selection",
         block = F,
         type = "toggle",
-        value = TRUE
+        value = TRUE,
+        class="btn-primary"
       ),
       p(""),
       sidebarLayout(
@@ -54,7 +55,7 @@ pluginSearchTabUI <- function(id) {
             ),
             DT::dataTableOutput(ns("obsDT"))
             ,
-            downloadButton(ns("downloadData"), 'Download')
+            downloadButton(ns("downloadData"), 'Download', class="btn-primary")
           )
         )
       )
@@ -67,15 +68,18 @@ uiForDerivedColumns <- function(id, ns){
     "Add Columns",
     tabsetPanel(
       tabPanel("Saved Column Definitions",
-        selectInput(ns("inColumnDefs"), "Saved Column Definitions:", choices =
+        selectInput(ns("inColumnDefs"), "Saved Columns Definitions:", choices =
             c("")),
+        
         tableOutput(ns("savedColumnDef")),
         tableOutput(ns("columnLevels")),
+        
         actionButton(
-          ns("inApplyColumn"), label = "Apply Column", class = 'btnbottomAlign'
+          ns("inApplyColumn"), label = "Apply Column", class = 'btnbottomAlign btn-primary'
         )
       ),
       tabPanel("New Column Definition",
+        p(""),
         fluidRow(
           column(3,
             selectInput(ns("inDatatype"), "DataType", choices=c(
@@ -84,31 +88,39 @@ uiForDerivedColumns <- function(id, ns){
             )
           ),
           column(3,
-            textInput(ns("inGroupName"), "New Column Name", value="")
+            textInput(ns("inDerColumnName"), "Column Name", value="")
           ),
           column(3,
+            tags$div(class = "custom-top-spacing",
+              tags$p("text")
+            ),
             checkboxInput(ns("inTwoVariables"), "Using Two Variables", value = F)
           )
         ),
         uiForNumericVariables(id, ns),
         fluidRow(
           column(2,
-                 textInput(ns("inLevelName"), "Name", value =
-                             "")
+            textInput(ns("inLevelName"), "Name", value =
+              "")
           ),
           column(2,
-                 actionButton(
-                   ns("inAddLevel"), label = "Add Level", class = 'btnbottomAlign'
-                 ))
+            tags$div(class = "custom-top-spacing",
+              tags$p("text")
+            ),
+            actionButton(
+              ns("inAddLevel"), label = "Add Level", class = 'btnbottomAlign btn-primary'
+            ))
         ),
         fluidRow(
           column(3,
             selectizeInput(ns("inCatLevels"), "Levels:", choices =
                            c(""))
           ),
-          column(
-            3,
-            actionButton(ns("inSaveColDef"), "Save Column Definition", class = 'btnbottomAlign')
+          column(3,
+            tags$div(class = "custom-top-spacing",
+              tags$p("text")
+            ),
+            actionButton(ns("inSaveColDef"), "Save Column Definition", class = 'btnbottomAlign btn-primary')
           )
         )
       )
@@ -174,7 +186,7 @@ barChartTabUI <- function(id) {
         ,choices = c("Years","Months"),
         selected = 1,
         multiple = F),
-      actionButton(ns("inShow"), "Show")
+      actionButton(ns("inShow"), "Show", class="btn-primary")
     ),
     # Show a plot of the generated distribution
     mainPanel(navbarPage(

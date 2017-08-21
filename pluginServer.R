@@ -203,7 +203,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
 
   observeEvent(input$inSaveColDef, {
     result <- list()
-    columnName <- input$inGroupName
+    columnName <- input$inDerColumnName
     result$datatype <- input$inDatatype
     result$usingTwoVars <- input$inTwoVariables
     result$firstColName <- input$inNumericCols
