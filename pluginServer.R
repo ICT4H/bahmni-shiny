@@ -509,7 +509,7 @@ showLineChart <- function(input,output,grp_cols,obs){
   if(interval == "Years"){
     obs[interval] <- strftime(obs[["Visit Date"]], format="%Y")  
   }else if(input$inTimeInterval == "Months"){
-    obs[interval] <- strftime(obs[["Visit Date"]], format="%m-%Y")  
+    obs[interval] <- as.POSIXct(as.yearmon(obs[["Visit Date"]]))
   }
   
   chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
@@ -526,11 +526,14 @@ showLineChart <- function(input,output,grp_cols,obs){
       outputVar <- "total"
     }
     plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = as.name(grp_cols[1]), group = as.name(grp_cols[1])))
-    plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point()
+    plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point() 
+    if(interval == 'Months'){
+      plot <- plot + scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%m-%Y"))
+    }
     if(input$inFunction != "none"){
       plot <- plot + stat_summary(fun.y = input$inFunction, na.rm = TRUE, group = 3, color = 'black', geom ='line')
     }
-    ggplotly(plot, tooltip = c("x", "group", "y")) %>% config(displayModeBar = F)
+    ggplotly(plot, tooltip = c("group", "y"))
   })
 }
 
@@ -600,13 +603,13 @@ showBarChart <- function(input,output,grp_cols,obs){
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
-          facet_grid(as.formula(paste("~", interval))) 
+          facet_grid(as.Date(paste("~", interval))) 
       }else{
         prapotionalChartData$group <- prapotionalChartData[[interval]]
         plot <- ggplot(chartData, aes_string(as.name(grp_cols[2]), "total", fill = as.name(grp_cols[1]))) +
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5)) +
-          facet_grid(as.formula(paste("~", interval))) 
+          facet_grid(as.Date(paste("~", interval))) 
       }
     }
     else{

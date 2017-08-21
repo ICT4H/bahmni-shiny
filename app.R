@@ -16,6 +16,7 @@ pkgs_to_load <-
     "data.table",
     "dplyr",
     "DT",
+    "zoo",
     "shinyjs",
     "shinyBS",
     "purrr",

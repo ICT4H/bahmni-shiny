@@ -21,9 +21,9 @@ if(host=="localhost") {
   localhost <- "localhost"
 } else {
   localhost <- "127.0.0.1"
-  sshMysqlTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localMysqlPort, ":localhost:3306 ", sshUsername, "@", host, " sleep 10", sep="")
+  sshMysqlTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localMysqlPort, ":localhost:3306 ", sshUsername, "@", host, " sleep 60", sep="")
   system(sshMysqlTunnleCommand)
-  sshPsqlTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localPsqlPort, ":localhost:5432 ", sshUsername, "@", host, " sleep 10", sep="")
+  sshPsqlTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localPsqlPort, ":localhost:5432 ", sshUsername, "@", host, " sleep 60", sep="")
   system(sshPsqlTunnleCommand)
 }
 
