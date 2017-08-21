@@ -15,11 +15,14 @@ pluginSearchTabUI <- function(id) {
   ns <- NS(id)
   tagList(
     p(""),
-    dateRangeInput(ns("inDateRange"),
+    checkboxInput(ns("inFetchAll"), label="Fetch All Data", value = F),
+    conditionalPanel(
+      condition = paste("input[['", id, "-inFetchAll']]==0", sep = ""),
+      dateRangeInput(ns("inDateRange"),
       label = 'Range',
       start = Sys.Date() - 365,
       end = Sys.Date()
-    ),
+    )),
     actionButton(ns("inApply"), "Apply", class="btn-primary"),
     conditionalPanel(condition = "1==0",
                      checkboxInput(

@@ -62,6 +62,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
   })
 
   observeEvent(input$inApply, {
+    shouldFetchAll <- input$inFetchAll
     dateRange <- as.character(input$inDateRange)
     envir <- new.env()
     mysqlPool <- getMysqlConnectionPool()
@@ -71,7 +72,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
       withSpinner(p("")),
       title = "Fetching Data",
       footer = NULL, size = "s"))
-    mainTable$data <- envir$fetchData(mysqlPool, psqlPool, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
+    mainTable$data <- envir$fetchData(mysqlPool, psqlPool, shouldFetchAll, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
     removeModal()
     disconnectFromDb(mysqlPool)
     disconnectFromDb(psqlPool)
@@ -426,7 +427,7 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
       })
       selectedValue <- "Scatter Plot"
     } else if(chartOption == 5){
-      showMapPlot(output,grp_cols,obs)
+      showMapPlot(input,output,grp_cols,obs)
       selectedValue <- "Map Plot"
     } else if(chartOption == 6){
       showLineChart(input,output,grp_cols,obs)
@@ -491,8 +492,7 @@ showBoxPlot <- function(input,output,grp_cols,obs){
   output$boxPlot <- renderPlotly({
     p <- plot_ly(obs,x = obs[[interval]], y = obs[[grp_cols[[2]]]]
       , color = obs[[grp_cols[[1]]]], type = "box")
-    p %>% layout(boxmode = "group", xaxis = list(title = interval,showgrid = T)) %>%
-      config(displayModeBar = F)
+    p %>% layout(boxmode = "group", xaxis = list(title = interval,showgrid = T))
   })
 }
 
@@ -503,7 +503,6 @@ showLineChart <- function(input,output,grp_cols,obs){
       type = "warning",
       duration = NULL
     )
-    grp_cols <- grp_cols[1]
   }
   interval <- input$inTimeInterval
   if(interval == "Years"){
@@ -512,11 +511,11 @@ showLineChart <- function(input,output,grp_cols,obs){
     obs[interval] <- strftime(obs[["Visit Date"]], format="%m-%Y")  
   }
   
-  chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
+  chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols[1],as.name), interval)) %>% summarise(total = n())
   prapotionalChartData <- chartData %>%
       group_by_(.dots = c(interval)) %>%
       mutate(countT= sum(total)) %>%
-      group_by_(.dots = c(lapply(grp_cols,as.name))) %>%
+      group_by_(.dots = c(lapply(grp_cols[1],as.name))) %>%
       mutate(percentage=round(100*total/countT,2))
   output$lineChart <- renderPlotly({
     if(input$inProportional){
@@ -530,7 +529,7 @@ showLineChart <- function(input,output,grp_cols,obs){
     if(input$inFunction != "none"){
       plot <- plot + stat_summary(fun.y = input$inFunction, na.rm = TRUE, group = 3, color = 'black', geom ='line')
     }
-    ggplotly(plot, tooltip = c("x", "group", "y")) %>% config(displayModeBar = F)
+    ggplotly(plot, tooltip = c("x", "group", "y"))
   })
 }
 
@@ -557,7 +556,20 @@ fetchGeoCode <- function(addresses){
   data.frame(lat,lon)
 }
 
-showMapPlot <- function(output,grp_cols,obs){
+showMapPlot <- function(input,output,grp_cols,obs){
+  if(!identical(input$grp_cols[1], "State") || !identical(input$grp_cols[1], "District")){
+    showModal(modalDialog(
+      "Map plot can only work with State or District!"
+    ))
+    return()
+  }
+  if(length(grp_cols) > 1){
+    showNotification(
+      "Map Plot works for just one Factor, We will consider Factor 1!",
+      type = "warning",
+      duration = NULL
+    )
+  }
   chartData <- obs %>% group_by_(.dots = c(as.name(grp_cols[1]))) %>% summarise(total = n())
   chartData <- subset(chartData, !is.na(chartData[[grp_cols[1]]])) 
   locs_geo <- fetchGeoCode(chartData[[grp_cols[1]]])
@@ -631,6 +643,6 @@ showBarChart <- function(input,output,grp_cols,obs){
     for (i in 1:length(p$x$data)){
         p$x$data[[i]]$hovertext <- NULL
     }
-    p %>% config(displayModeBar = F)
+    p
   })
 }

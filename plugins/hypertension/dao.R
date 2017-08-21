@@ -11,7 +11,7 @@ age <- function(from, to) {
          age - 1, age)
 }
 
-fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
+fetchData <- function(mysqlPool, psqlPool, shouldFetchAll, startDate, endDate) {
   dbOutput <- list()
   variablesToFetch <- list("BMI","BMI Status", "Systolic",
                            "Diastolic")
@@ -30,15 +30,25 @@ fetchData <- function(mysqlPool, psqlPool, startDate, endDate) {
      select(concept_id) %>%
      pull(concept_id)
 
-  patientWithHypertension <- mysqlPool %>% 
-    tbl("obs") %>% 
-    filter(voided==0,
-     value_coded == hypertensionConceptId,
-     concept_id == codedDiagnosisConceptId,
-     obs_datetime>=startDate,
-     obs_datetime<endDate) %>% 
-    select(person_id, encounter_id) %>% 
-    collect(n = Inf)
+  if(shouldFetchAll){
+    patientWithHypertension <- mysqlPool %>% 
+      tbl("obs") %>% 
+      filter(voided==0,
+       value_coded == hypertensionConceptId,
+       concept_id == codedDiagnosisConceptId) %>% 
+      select(person_id, encounter_id) %>% 
+      collect(n = Inf)
+  }else{
+    patientWithHypertension <- mysqlPool %>% 
+      tbl("obs") %>% 
+      filter(voided==0,
+       value_coded == hypertensionConceptId,
+       concept_id == codedDiagnosisConceptId,
+       obs_datetime>=startDate,
+       obs_datetime<endDate) %>% 
+      select(person_id, encounter_id) %>% 
+      collect(n = Inf)
+  }
 
   if(nrow(patientWithHypertension) <= 0){
     return (data.frame())
