@@ -32,3 +32,9 @@ observeEvent(input$Login, {
     showNotification("Username or Password incorrect!", type = "error")  
   }
 })
+
+output$userLogged <- eventReactive(input$Login,{
+  USER$Logged    
+})
+
+outputOptions(output,"userLogged",suspendWhenHidden=FALSE)

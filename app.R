@@ -39,15 +39,12 @@ source("pluginUI.R")
 
 ui <- fluidPage(
   tags$link(rel="stylesheet", type="text/css",href="style.css"),
-  tags$style("#shiny-notification-panel {top:0;left:35%;width:40%}"),
-  tags$style("#shiny-modal .shiny-spinner-placeholder {height:150px !important}"),
-  tags$style(".custom-top-spacing{visibility:hidden;margin-bottom:-5%}"),
   useShinyjs(),
   ## Login module;
   div(class = "login",
       uiOutput("uiLogin")
   ), 
-  uiOutput("tabs")
+  conditionalPanel(condition = "output.userLogged",withSpinner(uiOutput("tabs")))
 )
 
 properties <- read.properties("app.properties")

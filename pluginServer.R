@@ -108,8 +108,8 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     updateNumericInput(session, "inEndRange", value = "")
     updateNumericInput(session, "inStartRangeOther", value = "")
     updateNumericInput(session, "inEndRangeOther", value = "")
-    updateSelectizeInput(session, "inCatLevels", choices = c(""))
-    updateTextInput(session, "inLevelName", value = "")
+    updateTextInput(session, "inCategoryName", value = "")
+    output$newColumnCategories <- renderTable(do.call("rbind", list()))
   })
   
   observeEvent(input$inColumnNames, {
@@ -180,10 +180,36 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     }
   })
   catColumns <- reactiveValues(data = list())
-  #Addlevel to a column
-  observeEvent(input$inAddLevel, {
-    newlevel <- list(
-      "Name" = input$inLevelName,
+
+  convertCategoriesToNamedList <- function(categories, usingTwoVars){
+    outputCategories <- lapply(categories, FUN=function(category){
+      categoryOutput <- list()
+      categoryOutput["Name"] <- category$Name
+      if(usingTwoVars){
+        categoryOutput["Range For First Variable"] <- paste(category[['Range']][['From']],category[['Range']][['To']], sep=" - ")
+        categoryOutput["Range For Second Variable"] <- paste(category[['Range']][['FromOther']],category[['Range']][['ToOther']], sep=" - ")
+      }else{
+        categoryOutput["Range For Variable"] <- paste(category[['Range']][['From']],category[['Range']][['To']], sep=" - ")
+      }
+      categoryOutput
+    })
+  }
+  #AddCategory to a column
+  observeEvent(input$inAddCategory, {
+    if(identical(input$inCategoryName, "")){
+      showModal(modalDialog("Please Enter Category Name!"))
+      return()
+    }
+    if(is.na(input$inStartRange) || is.na(input$inEndRange)){
+      showModal(modalDialog("Please add start and end range!"))
+      return()
+    }
+    if(input$inTwoVariables && (is.na(input$inStartRangeOther) || is.na(input$inEndRangeOther))){
+      showModal(modalDialog("Please add start and end range!"))
+      return()
+    }
+    newCategory <- list(
+      "Name" = input$inCategoryName,
       "Range" = c(
         "From" = as.numeric(input$inStartRange),
         "To" = as.numeric(input$inEndRange),
@@ -191,31 +217,49 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
         "ToOther" = as.numeric(input$inEndRangeOther)
       )
     )
-    catColumns$data[[length(catColumns$data) + 1]] = newlevel
-    levelnames <- catColumns$data %>% map_chr("Name")
-    updateSelectizeInput(session, "inCatLevels", choices = levelnames)
+    catColumns$data[[length(catColumns$data) + 1]] = newCategory
+    categoryNames <- catColumns$data %>% map_chr("Name")
     updateNumericInput(session, "inStartRange", value = "")
     updateNumericInput(session, "inEndRange", value = "")
     updateNumericInput(session, "inStartRangeOther", value = "")
     updateNumericInput(session, "inEndRangeOther", value = "")
-    updateTextInput(session, "inLevelName", value = "")
+    updateTextInput(session, "inCategoryName", value = "")
+
+    outputCategories <- convertCategoriesToNamedList(catColumns$data, input$inTwoVariables)
+    output$newColumnCategories <- renderTable(
+      do.call("rbind", outputCategories), bordered = T, caption = "Categories",
+       caption.placement = getOption("xtable.caption.placement", "top"),
+        caption.width = getOption("xtable.caption.width", NULL)
+    )
   })
 
   observeEvent(input$inSaveColDef, {
+    if(identical(input$inDerivedColumnName, "")){
+      showModal(modalDialog("Please Enter the New Column Name!"))
+      return()
+    }
+    if(length(catColumns$data) < 1){
+      showModal(modalDialog("Please add atleast one category!"))
+      return()
+    }
     result <- list()
-    columnName <- input$inDerColumnName
+    columnName <- input$inDerivedColumnName
     result$datatype <- input$inDatatype
     result$usingTwoVars <- input$inTwoVariables
     result$firstColName <- input$inNumericCols
     result$secondColName <- input$inNumericColsOther
     result$dateColName <- input$inDateCols
-    result$levels <- catColumns$data
+    result$categories <- catColumns$data
     
     existingColumnDefs$data[[columnName]] <- result
     
     write_lines(toJSON(existingColumnDefs$data), colDefFileName)
-    updateSelectizeInput(session, "inCatLevels", choices = c(""))
+    output$newColumnCategories <- renderTable(do.call("rbind", list()))
     catColumns$data <- list()
+    updateTextInput(session,"inDerivedColumnName",value = "")
+    updateCheckboxInput(session,"inTwoVariables", value = F)
+    updateSelectizeInput(session, "inNumericCols")
+    updateSelectizeInput(session, "inNumericColsOther")
   })
 
   observeEvent(input$inColumnDefs, {
@@ -225,7 +269,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
 
     outputColDef <- c()
     outputColDef['Datatype'] <- colDef$datatype
-    outputColDef['Uses Two Variables'] <- colDef$usingTwoVars
+    outputColDef['Uses Two Variables'] <- ifelse(colDef$usingTwoVars, "YES", "NO")
     if(colDef$usingTwoVars){
       outputColDef['First Variable'] <- colDef$firstColName
       outputColDef['Second Variable'] <- colDef$secondColName
@@ -233,23 +277,12 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
       outputColDef['Variable'] <- colDef$firstColName
     }
     
-    outputLevels <- lapply(colDef$levels, FUN=function(level){
-      levelOutput <- list()
-      levelOutput["Name"] <- level$Name
-      if(colDef$usingTwoVars){
-        levelOutput["Range For First Variable"] <- paste(level[['Range']][['From']],level[['Range']][['To']], sep=" - ")
-        levelOutput["Range For Second Variable"] <- paste(level[['Range']][['FromOther']],level[['Range']][['ToOther']], sep=" - ")
-      }else{
-        levelOutput["Range For Variable"] <- paste(level[['Range']][['From']],level[['Range']][['To']], sep=" - ")
-      }
-      levelOutput
-    })
-    
+    outputCategories <- convertCategoriesToNamedList(colDef$categories, colDef$usingTwoVars)
     output$savedColumnDef <- renderTable(
       as.matrix(outputColDef), rownames = T, colnames = F, bordered = T
     )
-    output$columnLevels <- renderTable(
-      do.call("rbind", outputLevels), bordered = T, caption = "Categories",
+    output$savedColumnCategories <- renderTable(
+      do.call("rbind", outputCategories), bordered = T, caption = "Categories",
        caption.placement = getOption("xtable.caption.placement", "top"),
         caption.width = getOption("xtable.caption.width", NULL)
     )
@@ -285,21 +318,20 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
       rownames = F,
       filter = "top"
     )
-    updateSelectizeInput(session, "inCatLevels", choices = c(""))
     catColumns$data <- list()
   })
 }
 
 deriveWithOneVarNumeric <- function(colDef, columnName, mainTable) {
   firstColName <- colDef$firstColName
-  ranges <- colDef$levels %>% map("Range")
-  levelnames <- colDef$levels %>% map_chr("Name")
+  ranges <- colDef$categories %>% map("Range")
+  categoryNames <- colDef$categories %>% map_chr("Name")
 
   mutate_call <- lazyeval::interp( ~ a , a = as.name(firstColName))
   mainTable$data <-
     mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), firstColName))
 
-  levelnames %>% map2(.y = ranges, function(x, y, df) {
+  categoryNames %>% map2(.y = ranges, function(x, y, df) {
     mutate_call_ip <- lazyeval::interp( ~ ifelse(a >= y[[1]] & a <= y[[2]] , x[[1]], NA) ,
                         a = as.name(firstColName))
     df <-
@@ -310,8 +342,8 @@ deriveWithOneVarNumeric <- function(colDef, columnName, mainTable) {
 deriveWithTwoVarsNumeric <- function(colDef, columnName, mainTable) {
   firstColName <- colDef$firstColName
   secondColName <- colDef$secondColName
-  ranges <- colDef$levels %>% map("Range")
-  levelnames <- colDef$levels %>% map_chr("Name")
+  ranges <- colDef$categories %>% map("Range")
+  categoryNames <- colDef$categories %>% map_chr("Name")
   
   mutate_call <- lazyeval::interp( ~ a , a = as.name(firstColName))
   mainTable$data <-
@@ -321,7 +353,7 @@ deriveWithTwoVarsNumeric <- function(colDef, columnName, mainTable) {
   mainTable$data <-
     mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), secondColName))
 
-  levelnames %>% map2(.y = ranges, function(x, y, df) {
+  categoryNames %>% map2(.y = ranges, function(x, y, df) {
     mutate_call_ip <- lazyeval::interp( ~ ifelse(a >= y[[1]] & a <= y[[2]] & b >= y[[3]] & b <= y[[4]] , x[[1]], NA) ,
                         a = as.name(firstColName), b = as.name(secondColName))
     df <-

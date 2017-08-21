@@ -4,4 +4,31 @@ div.login {
     left: 40%;
 } 
 
+#shiny-notification-panel {
+	top:0;left:35%;width:40%
+}
+
+#shiny-modal .shiny-spinner-placeholder {
+	height:150px !important
+}
+
+.custom-top-spacing{
+	visibility:hidden;
+	margin-bottom:-5%
+}
+
+fieldset.inAddCategory{
+	margin: 8px;
+	border: 1px solid silver;
+	padding: 8px;
+	border-radius: 4px;
+}
+fieldset legend{
+	border:0;
+	width:auto;
+	font-size:15px;
+	margin:0;
+	line-height:0
+}
+
 

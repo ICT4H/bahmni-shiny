@@ -72,7 +72,7 @@ uiForDerivedColumns <- function(id, ns){
             c("")),
         
         tableOutput(ns("savedColumnDef")),
-        tableOutput(ns("columnLevels")),
+        tableOutput(ns("savedColumnCategories")),
         
         actionButton(
           ns("inApplyColumn"), label = "Apply Column", class = 'btnbottomAlign btn-primary'
@@ -88,7 +88,7 @@ uiForDerivedColumns <- function(id, ns){
             )
           ),
           column(3,
-            textInput(ns("inDerColumnName"), "Column Name", value="")
+            textInput(ns("inDerivedColumnName"), "Column Name", value="")
           ),
           column(3,
             tags$div(class = "custom-top-spacing",
@@ -98,31 +98,8 @@ uiForDerivedColumns <- function(id, ns){
           )
         ),
         uiForNumericVariables(id, ns),
-        fluidRow(
-          column(2,
-            textInput(ns("inLevelName"), "Name", value =
-              "")
-          ),
-          column(2,
-            tags$div(class = "custom-top-spacing",
-              tags$p("text")
-            ),
-            actionButton(
-              ns("inAddLevel"), label = "Add Level", class = 'btnbottomAlign btn-primary'
-            ))
-        ),
-        fluidRow(
-          column(3,
-            selectizeInput(ns("inCatLevels"), "Levels:", choices =
-                           c(""))
-          ),
-          column(3,
-            tags$div(class = "custom-top-spacing",
-              tags$p("text")
-            ),
-            actionButton(ns("inSaveColDef"), "Save Column Definition", class = 'btnbottomAlign btn-primary')
-          )
-        )
+        tableOutput(ns("newColumnCategories")),
+        actionButton(ns("inSaveColDef"), "Save Column Definition", class = 'btnbottomAlign btn-primary')
       )
     ),
     style = "info"
@@ -130,7 +107,9 @@ uiForDerivedColumns <- function(id, ns){
 }
 
 uiForNumericVariables <- function(id, ns){
-  tagList(
+  tags$fieldset(class = "inAddCategory",
+    tags$legend("Add Category"),
+    textInput(ns("inCategoryName"), "Name", value = ""),
     fluidRow(
       column(4,
              selectizeInput(
@@ -157,6 +136,9 @@ uiForNumericVariables <- function(id, ns){
              numericInput(ns("inEndRangeOther"), "End", value =
                             ""))
           )
+    ),
+    actionButton(
+      ns("inAddCategory"), label = "Add Category", class = 'btnbottomAlign btn-primary'
     )
   )
 }
