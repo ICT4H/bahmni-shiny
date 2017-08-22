@@ -79,6 +79,9 @@ uiForDerivedColumns <- function(id, ns){
         
         actionButton(
           ns("inApplyColumn"), label = "Apply Column", class = 'btnbottomAlign btn-primary'
+        ),
+        actionButton(
+          ns("inDeleteColumn"), label = "Delete Column Definition", class = 'btnbottomAlign btn-primary'
         )
       ),
       tabPanel("New Column Definition",

@@ -275,6 +275,16 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     )
   })
 
+  observeEvent(input$inDeleteColumn,{
+    columnName <- input$inColumnDefs
+    existingColumnDefs$data[[columnName]] <- NULL
+    write_lines(toJSON(existingColumnDefs$data), colDefFileName)
+    showNotification(
+      paste("Column Definition for", columnName, "is deleted successfully."),
+      type = "message"
+    )
+  })
+
   observeEvent(input$inResetColDef,{
     updateNumericInput(session, "inStartRange", value = "")
     updateNumericInput(session, "inEndRange", value = "")
