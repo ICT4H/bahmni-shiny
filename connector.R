@@ -16,6 +16,7 @@ psqlUser <- properties$psqlUser
 psqlPassword <- properties$psqlPassword
 localPsqlPort <- properties$localPsqlPort
 
+
 getMysqlConnectionPool <- function() {
 	if(host=="localhost") {
 	  localhost <- "localhost"

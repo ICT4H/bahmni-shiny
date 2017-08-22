@@ -526,14 +526,18 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
 showBoxPlot <- function(input,output,grp_cols,obs){
   interval <- input$inTimeInterval
   if(interval == "Years"){
-    obs[interval] <- strftime(obs[["Visit Date"]], format="%Y")  
+    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
+    scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
+    uiFormat <- '%Y'
   }else if(input$inTimeInterval == "Months"){
-    obs[interval] <- strftime(obs[["Visit Date"]], format="%m-%Y")  
+    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
+    scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%m-%Y"))
+    uiFormat <- '%m-%Y'
   }
+  p <- ggplot(obs, aes_string(x=interval, y=grp_cols[[2]], fill=grp_cols[[1]], text = paste("format.Date(",interval,", uiFormat)")))
+  p <- p + geom_boxplot() + scale_X
   output$boxPlot <- renderPlotly({
-    p <- plot_ly(obs,x = obs[[interval]], y = obs[[grp_cols[[2]]]]
-      , color = obs[[grp_cols[[1]]]], type = "box")
-    p %>% layout(boxmode = "group", xaxis = list(title = interval,showgrid = T))
+    ggplotly(p, tooltip = c("text", "y", "fill")) %>% layout(boxmode = "group")
   })
 }
 
@@ -547,9 +551,13 @@ showLineChart <- function(input,output,grp_cols,obs){
   }
   interval <- input$inTimeInterval
   if(interval == "Years"){
-    obs[interval] <- strftime(obs[["Visit Date"]], format="%Y")  
+    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
+    scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
+    uiFormat <- '%Y'
   }else if(input$inTimeInterval == "Months"){
-    obs[interval] <- strftime(obs[["Visit Date"]], format="%m-%Y")  
+    scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%m-%Y"))
+    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
+    uiFormat <- '%m-%Y'
   }
   
   chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols[1],as.name), interval)) %>% summarise(total = n())
@@ -565,12 +573,13 @@ showLineChart <- function(input,output,grp_cols,obs){
     }else{
       outputVar <- "total"
     }
-    plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = as.name(grp_cols[1]), group = as.name(grp_cols[1])))
-    plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point()
+    plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = as.name(grp_cols[1]), group = as.name(grp_cols[1]), text = paste("format.Date(",interval,", uiFormat)")))
+    plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point() 
+    plot <- plot + scale_X
     if(input$inFunction != "none"){
       plot <- plot + stat_summary(fun.y = input$inFunction, na.rm = TRUE, group = 3, color = 'black', geom ='line')
     }
-    ggplotly(plot, tooltip = c("x", "group", "y"))
+    ggplotly(plot, tooltip = c("text","group", "y"))
   })
 }
 
@@ -634,9 +643,13 @@ showBarChart <- function(input,output,grp_cols,obs){
   output$barPlot <- renderPlotly({
     interval <- input$inTimeInterval
     if(interval == "Years"){
-      obs[interval] <- strftime(obs[["Visit Date"]], format="%Y")  
+      obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
+      scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
+      uiFormat <- '%Y'
     }else if(input$inTimeInterval == "Months"){
-      obs[interval] <- strftime(obs[["Visit Date"]], format="%m-%Y")  
+      obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
+      scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%m-%Y"))
+      uiFormat <- '%m-%Y'
     }
     chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
     prapotionalChartData <- chartData %>%
@@ -645,6 +658,7 @@ showBarChart <- function(input,output,grp_cols,obs){
       group_by_(.dots = c(lapply(grp_cols,as.name))) %>%
       mutate(percentage=round(100*total/countT,2))
     if(length(grp_cols) == 2){
+      convertLabel <- function(value){ lapply(value,FUN = function(val){format(val,uiFormat)})}
       if(input$inFlipBar){
         grp_cols = rev(grp_cols)
       }
@@ -653,34 +667,33 @@ showBarChart <- function(input,output,grp_cols,obs){
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
-          facet_grid(as.formula(paste("~", interval))) 
+          facet_grid(paste("~", interval), labeller = convertLabel) 
       }else{
         prapotionalChartData$group <- prapotionalChartData[[interval]]
         plot <- ggplot(chartData, aes_string(as.name(grp_cols[2]), "total", fill = as.name(grp_cols[1]))) +
           geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
           geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5)) +
-          facet_grid(as.formula(paste("~", interval))) 
+          facet_grid(paste("~", interval), labeller = convertLabel)
       }
     }
     else{
       if(input$inFlipBar){
-        barType <- position_stack(vjust = 0.5)
+        barType <- "stack"
       }else{
-        barType <- position_dodge(width = 0.2)
+        barType <- "dodge"
       }
       if(input$inProportional){         
-        plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]))) +
-          geom_bar(stat="identity", position = barType, width=0.4) +
-          geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = barType) +
-          scale_y_continuous(labels = dollar_format(suffix = "%", prefix = ""))  
+        plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]), text = paste("format.Date(",interval,", uiFormat)"))) +
+          geom_bar(stat="identity", position = barType) +
+          scale_y_continuous(labels = dollar_format(suffix = "%", prefix = ""))  + scale_X 
       }else{
-        plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]))) +
-          geom_bar(stat="identity", position = barType, width=0.4) +
-          geom_text(data=chartData, aes (label = total), size = 3, position = barType) 
+        plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]), text = paste("format.Date(",interval,", uiFormat)"))) +
+          geom_bar(stat="identity", position = barType) +
+          scale_X
       }
     } 
     
-    p <-ggplotly(plot)
+    p <-ggplotly(plot,tooltip = c("text","fill", "y"))
     for (i in 1:length(p$x$data)){
         p$x$data[[i]]$hovertext <- NULL
     }
