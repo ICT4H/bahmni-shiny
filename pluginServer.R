@@ -446,7 +446,10 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
     } else if (chartOption == 3) {
       #histogram
       output$histPlot <- renderPlot({
-        hist_1 <- obs %>% ggplot(aes_string(grp_cols[1]))
+        hist_1 <- obs %>% ggplot(aes_string(as.name(grp_cols[1])))
+        if(length(grp_cols) == 2){
+          hist_1 <- obs %>% ggplot(aes_string(as.name(grp_cols[1]), fill = as.name(grp_cols[2])))
+        }
         mainPlot$data <-
           hist_1 +  geom_histogram(binwidth = input$inHistInput)
         mainPlot$data
@@ -457,8 +460,8 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
       output$scatterPlot <- renderPlot({
         scatter_plot <-
           obs %>% ggplot(aes_string(
-            x = grp_cols[1],
-            y = grp_cols[2],
+            x = as.name(grp_cols[1]),
+            y = as.name(grp_cols[2]),
             col = "Gender"
           ))
         scatter_plot <- scatter_plot + geom_point()
@@ -534,7 +537,7 @@ showBoxPlot <- function(input,output,grp_cols,obs){
     scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%m-%Y"))
     uiFormat <- '%m-%Y'
   }
-  p <- ggplot(obs, aes_string(x=interval, y=grp_cols[[2]], fill=grp_cols[[1]], text = paste("format.Date(",interval,", uiFormat)")))
+  p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[2]]), fill=as.name(grp_cols[[1]]), text = paste("format.Date(",interval,", uiFormat)")))
   p <- p + geom_boxplot() + scale_X
   output$boxPlot <- renderPlotly({
     ggplotly(p, tooltip = c("text", "y", "fill")) %>% layout(boxmode = "group")
