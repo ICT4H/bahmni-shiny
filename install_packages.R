@@ -33,7 +33,6 @@ if (!"shinycssloaders" %in% rownames(installed.packages()))
     "data.table",
     "dplyr",
     "DT",
-    "zoo",
     "shinyjs",
     "shinyBS",
     "purrr",
