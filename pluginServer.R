@@ -173,11 +173,11 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
       updateSelectizeInput(session,
                            "inNumericCols",
                            choices = numericColumns,
-                           selected = NULL)
+                           selected = 1)
       updateSelectizeInput(session,
                            "inNumericColsOther",
                            choices = numericColumns,
-                           selected = NULL)
+                           selected = 1)
     }
   })
   catColumns <- reactiveValues(data = list())
@@ -201,6 +201,14 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
       showModal(modalDialog("Please Enter Category Name!"))
       return()
     }
+    if(identical(input$inNumericCols,"")){
+      showModal(modalDialog("Please select a column!"))
+      return()
+    }
+    if(input$inTwoVariables && identical(input$inNumericColsOther,"")){
+      showModal(modalDialog("Please select a column!"))
+      return()
+    }
     if(is.na(input$inStartRange) || is.na(input$inEndRange)){
       showModal(modalDialog("Please add start and end range!"))
       return()
@@ -219,7 +227,6 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
       )
     )
     catColumns$data[[length(catColumns$data) + 1]] = newCategory
-    categoryNames <- catColumns$data %>% map_chr("Name")
     updateNumericInput(session, "inStartRange", value = "")
     updateNumericInput(session, "inEndRange", value = "")
     updateNumericInput(session, "inStartRangeOther", value = "")
@@ -259,8 +266,28 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     catColumns$data <- list()
     updateTextInput(session,"inDerivedColumnName",value = "")
     updateCheckboxInput(session,"inTwoVariables", value = F)
-    updateSelectizeInput(session, "inNumericCols")
-    updateSelectizeInput(session, "inNumericColsOther")
+    updateSelectizeInput(session, "inNumericCols", selected = 1)
+    updateSelectizeInput(session, "inNumericColsOther", selected =1 )
+
+    showNotification(
+      paste("Column Definition for", columnName, "is saved successfully."),
+      type = "message"
+    )
+  })
+
+  observeEvent(input$inResetColDef,{
+    updateNumericInput(session, "inStartRange", value = "")
+    updateNumericInput(session, "inEndRange", value = "")
+    updateNumericInput(session, "inStartRangeOther", value = "")
+    updateNumericInput(session, "inEndRangeOther", value = "")
+    updateTextInput(session, "inCategoryName", value = "")
+
+    catColumns$data <- list()
+    updateTextInput(session,"inDerivedColumnName",value = "")
+    updateCheckboxInput(session,"inTwoVariables", value = F)
+    updateSelectizeInput(session, "inNumericCols", selected = 1)
+    updateSelectizeInput(session, "inNumericColsOther", selected = 1)
+    output$newColumnCategories <- renderTable(do.call("rbind", list()))
   })
 
   observeEvent(input$inColumnDefs, {
@@ -320,6 +347,10 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
       filter = "top"
     )
     catColumns$data <- list()
+    showNotification(
+      paste("Column", columnName, "has been added successfully."),
+      type = "message"
+    )
   })
 }
 
@@ -557,7 +588,7 @@ fetchGeoCode <- function(addresses){
 }
 
 showMapPlot <- function(input,output,grp_cols,obs){
-  if(!identical(input$grp_cols[1], "State") || !identical(input$grp_cols[1], "District")){
+  if(!identical(grp_cols[1], "State") && !identical(grp_cols[1], "District")){
     showModal(modalDialog(
       "Map plot can only work with State or District!"
     ))

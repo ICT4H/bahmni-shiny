@@ -102,7 +102,8 @@ uiForDerivedColumns <- function(id, ns){
         ),
         uiForNumericVariables(id, ns),
         tableOutput(ns("newColumnCategories")),
-        actionButton(ns("inSaveColDef"), "Save Column Definition", class = 'btnbottomAlign btn-primary')
+        actionButton(ns("inSaveColDef"), "Save Column Definition", class = 'btnbottomAlign btn-primary'),
+        actionButton(ns("inResetColDef"), "Reset", class = 'btnbottomAlign btn-primary')
       )
     ),
     style = "info"

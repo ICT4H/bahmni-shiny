@@ -16,18 +16,14 @@ psqlUser <- properties$psqlUser
 psqlPassword <- properties$psqlPassword
 localPsqlPort <- properties$localPsqlPort
 
-
-if(host=="localhost") {
-  localhost <- "localhost"
-} else {
-  localhost <- "127.0.0.1"
-  sshMysqlTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localMysqlPort, ":localhost:3306 ", sshUsername, "@", host, " sleep 10", sep="")
-  system(sshMysqlTunnleCommand)
-  sshPsqlTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localPsqlPort, ":localhost:5432 ", sshUsername, "@", host, " sleep 10", sep="")
-  system(sshPsqlTunnleCommand)
-}
-
 getMysqlConnectionPool <- function() {
+	if(host=="localhost") {
+	  localhost <- "localhost"
+	} else {
+	  localhost <- "127.0.0.1"
+	  sshMysqlTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localMysqlPort, ":localhost:3306 ", sshUsername, "@", host, " sleep 10", sep="")
+	  system(sshMysqlTunnleCommand)
+	}
 	DBI::dbConnect(
 	  drv = RMySQL::MySQL(),
 	  dbname = mysqlDb,
@@ -43,6 +39,13 @@ disconnectFromDb <- function(conn){
 }
 
 getPsqlConnectionPool <- function() {
+	if(host=="localhost") {
+	  localhost <- "localhost"
+	} else {
+	  localhost <- "127.0.0.1"
+	  sshPsqlTunnleCommand <- paste("ssh -v -f -o StrictHostKeyChecking=no -i ", identityFilePath, " -L ", localPsqlPort, ":localhost:5432 ", sshUsername, "@", host, " sleep 10", sep="")
+	  system(sshPsqlTunnleCommand)
+	}
 	DBI::dbConnect(
 	  drv = RPostgreSQL::PostgreSQL(),
 	  dbname = psqlDb,

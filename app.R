@@ -44,7 +44,7 @@ ui <- fluidPage(
   div(class = "login",
       uiOutput("uiLogin")
   ), 
-  conditionalPanel(condition = "output.userLogged",withSpinner(uiOutput("tabs")))
+  uiOutput("tabs")
 )
 
 properties <- read.properties("app.properties")
