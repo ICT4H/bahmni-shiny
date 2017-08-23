@@ -545,13 +545,6 @@ showBoxPlot <- function(input,output,grp_cols,obs){
 }
 
 showLineChart <- function(input,output,grp_cols,obs){
-  if(length(grp_cols) > 1){
-    showNotification(
-      "Line Chart works for just one Factor, We will consider Factor 1!",
-      type = "warning",
-      duration = NULL
-    )
-  }
   interval <- input$inTimeInterval
   if(interval == "Years"){
     obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
@@ -563,12 +556,13 @@ showLineChart <- function(input,output,grp_cols,obs){
     uiFormat <- '%m-%Y'
   }
   
-  chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols[1],as.name), interval)) %>% summarise(total = n())
+  chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
   prapotionalChartData <- chartData %>%
       group_by_(.dots = c(interval)) %>%
       mutate(countT= sum(total)) %>%
-      group_by_(.dots = c(lapply(grp_cols[1],as.name))) %>%
+      group_by_(.dots = c(lapply(grp_cols,as.name))) %>%
       mutate(percentage=round(100*total/countT,2))
+
   output$lineChart <- renderPlotly({
     if(input$inProportional){
       chartData <- prapotionalChartData
@@ -579,6 +573,9 @@ showLineChart <- function(input,output,grp_cols,obs){
     plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = as.name(grp_cols[1]), group = as.name(grp_cols[1]), text = paste("format.Date(",interval,", uiFormat)")))
     plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point() 
     plot <- plot + scale_X
+    if(length(grp_cols) == 2){
+      plot <- plot + facet_grid(paste(grp_cols[2], "~ ."))
+    }
     if(input$inFunction != "none"){
       plot <- plot + stat_summary(fun.y = input$inFunction, na.rm = TRUE, group = 3, color = 'black', geom ='line')
     }
@@ -661,37 +658,31 @@ showBarChart <- function(input,output,grp_cols,obs){
       group_by_(.dots = c(lapply(grp_cols,as.name))) %>%
       mutate(percentage=round(100*total/countT,2))
     if(length(grp_cols) == 2){
-      convertLabel <- function(value){ lapply(value,FUN = function(val){format(val,uiFormat)})}
-      if(input$inFlipBar){
-        grp_cols = rev(grp_cols)
-      }
       if(input$inProportional){
-        plot <- ggplot(prapotionalChartData, aes_string(as.name(grp_cols[2]), "percentage", fill = as.name(grp_cols[1]))) + 
-          geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
-          geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = position_stack(vjust = 0.5)) +
-          scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
-          facet_grid(paste("~", interval), labeller = convertLabel) 
+        plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]))) + 
+          geom_bar(stat="identity", position = "dodge") +
+          geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = "dodge") +
+          scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + scale_X +
+          facet_grid(paste(as.name(grp_cols[2]), "~ .")) 
       }else{
         prapotionalChartData$group <- prapotionalChartData[[interval]]
-        plot <- ggplot(chartData, aes_string(as.name(grp_cols[2]), "total", fill = as.name(grp_cols[1]))) +
-          geom_bar(stat="identity", position = position_stack(vjust = 0.5), width=0.4) +
-          geom_text(data=chartData, aes (label = total), size = 3, position = position_stack(vjust = 0.5)) +
-          facet_grid(paste("~", interval), labeller = convertLabel)
+        plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]))) +
+          geom_bar(stat="identity", position = "dodge") +
+          geom_text(data=chartData, aes (label = total), size = 3, position = "dodge") + scale_X +
+          facet_grid(paste(as.name(grp_cols[2]), "~ ."))
       }
     }
     else{
-      if(input$inFlipBar){
-        barType <- "stack"
-      }else{
-        barType <- "dodge"
-      }
-      if(input$inProportional){         
+      if(input$inProportional){
+        prapotionalChartData[[interval]] <- as.factor(prapotionalChartData[[interval]])
+        prapotionalChartData[[grp_cols[1]]] <- as.factor(prapotionalChartData[[grp_cols[1]]])
+        rbind(dat, cbind(expand.grid(a=levels(dat$a), b=levels(dat$b)), v=NA))         
         plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]), text = paste("format.Date(",interval,", uiFormat)"))) +
-          geom_bar(stat="identity", position = barType) +
+          geom_bar(stat="identity", position = "dodge") +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = ""))  + scale_X 
       }else{
         plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]), text = paste("format.Date(",interval,", uiFormat)"))) +
-          geom_bar(stat="identity", position = barType) +
+          geom_bar(stat="identity", position = "dodge") +
           scale_X
       }
     } 

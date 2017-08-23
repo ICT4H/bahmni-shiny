@@ -188,10 +188,6 @@ barChartTabUI <- function(id) {
         tabPanel("Table",
                  withSpinner(tableOutput(ns("tableDF")))),
         tabPanel("Bar Chart",
-                fluidRow(column(
-                   12,
-                   checkboxInput(ns("inFlipBar"), "Flip:", value = F)
-                 )),
                  fluidRow(column(
                    12,
                    withSpinner(plotlyOutput(ns("barPlot")))
