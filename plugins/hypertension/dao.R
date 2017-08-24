@@ -97,13 +97,13 @@ fetchData <- function(mysqlPool, psqlPool, shouldFetchAll, startDate, endDate) {
     left_join(saleOrders, by=c("order_id"="id")) %>%
     collect(n=Inf) %>%
     group_by(visit_id, care_setting) %>%
-    summarise(amount = sum(amount_total)) %>%
-    select(visit_id, amount, care_setting)
+    summarise(Amount = sum(amount_total)) %>%
+    select(visit_id, Amount, care_setting)
 
   hypertensionVisits <- hypertensionVisits %>%
     inner_join(visitDates, by=c("visit_id"="visit_id")) %>%
     inner_join(visitPayments, by=c("visit_id"="visit_id")) %>%
-    select(patient_id, date_started, amount, care_setting) %>%
+    select(patient_id, date_started, Amount, care_setting) %>%
     rename(`Visit Date` = date_started) %>%
     rename(`Care Setting` = care_setting) %>%
     collect(n=Inf)
@@ -158,7 +158,7 @@ fetchData <- function(mysqlPool, psqlPool, shouldFetchAll, startDate, endDate) {
     ungroup() %>%
     rename(ID=identifier) %>%
     select(ID, name, value_numeric, value_text,
-     Age, State, District, Gender, `Visit Date`, amount, `Care Setting`) %>%
+     Age, State, District, Gender, `Visit Date`, Amount, `Care Setting`) %>%
     collect(n = Inf)
 
     #This is to filter out incorrect data entries.

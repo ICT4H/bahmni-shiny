@@ -529,7 +529,11 @@ showBoxPlot <- function(input,output,grp_cols,obs){
     scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%m-%Y"))
     uiFormat <- '%m-%Y'
   }
-  p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[2]]), fill=as.name(grp_cols[[1]]), text = paste("format.Date(",interval,", uiFormat)")))
+  if(length(grp_cols) == 2){
+    p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[1]]), fill=as.name(grp_cols[[2]]), text = paste("format.Date(",interval,", uiFormat)")))
+  }else{
+    p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[1]]), text = paste("format.Date(",interval,", uiFormat)")))
+  }
   p <- p + geom_boxplot() + scale_X
   output$boxPlot <- renderPlotly({
     ggplotly(p, tooltip = c("text", "y", "fill")) %>% layout(boxmode = "group")
@@ -566,7 +570,7 @@ showLineChart <- function(input,output,grp_cols,obs){
     plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point() 
     plot <- plot + scale_X
     if(length(grp_cols) == 2){
-      plot <- plot + facet_grid(paste(grp_cols[2], "~ ."))
+      plot <- plot + facet_grid(paste(as.name(grp_cols[2]), "~ ."))
     }
     if(input$inFunction != "none"){
       plot <- plot + stat_summary(fun.y = input$inFunction, na.rm = TRUE, group = 3, color = 'black', geom ='line')
@@ -665,9 +669,6 @@ showBarChart <- function(input,output,grp_cols,obs){
     }
     else{
       if(input$inProportional){
-        prapotionalChartData[[interval]] <- as.factor(prapotionalChartData[[interval]])
-        prapotionalChartData[[grp_cols[1]]] <- as.factor(prapotionalChartData[[grp_cols[1]]])
-        rbind(dat, cbind(expand.grid(a=levels(dat$a), b=levels(dat$b)), v=NA))         
         plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]), text = paste("format.Date(",interval,", uiFormat)"))) +
           geom_bar(stat="identity", position = "dodge") +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = ""))  + scale_X 
