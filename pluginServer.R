@@ -302,7 +302,15 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
 
   observeEvent(input$inColumnDefs, {
     columnName <- input$inColumnDefs
-    req(input$inColumnDefs)
+    if(identical(input$inColumnDefs, "")){
+        output$savedColumnDef <- renderTable(
+        as.matrix(list()), rownames = T, colnames = F, bordered = T
+      )
+      output$savedColumnCategories <- renderTable(
+        do.call("rbind", list())
+      )
+      return ()
+    }
     colDef <- existingColumnDefs$data[[columnName]]
 
     outputColDef <- c()
@@ -329,6 +337,10 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
   #Mutate to add new categorical column to dataframe
   observeEvent(input$inApplyColumn, {
     columnName <- input$inColumnDefs
+    if(identical(columnName, "")){
+      showModal(modalDialog("Please Select a columnName!"))
+      return()
+    }
     colDef <- existingColumnDefs$data[[columnName]]
     datatype <- colDef$datatype
     usingTwoVars <- colDef$usingTwoVars
@@ -641,14 +653,13 @@ showBarChart <- function(input,output,grp_cols,obs){
       if(input$inProportional){
         plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]))) + 
           geom_bar(stat="identity", position = "dodge") +
-          geom_text(data=prapotionalChartData, aes (label = paste(percentage,"%",sep="")), size = 3, position = "dodge") +
           scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + scale_X +
           facet_grid(paste(as.name(grp_cols[2]), "~ .")) 
       }else{
         prapotionalChartData$group <- prapotionalChartData[[interval]]
         plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]))) +
           geom_bar(stat="identity", position = "dodge") +
-          geom_text(data=chartData, aes (label = total), size = 3, position = "dodge") + scale_X +
+          scale_X +
           facet_grid(paste(as.name(grp_cols[2]), "~ ."))
       }
     }
