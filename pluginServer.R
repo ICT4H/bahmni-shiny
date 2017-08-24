@@ -404,18 +404,6 @@ deriveWithTwoVarsNumeric <- function(colDef, columnName, mainTable) {
 }
 
 barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) {
-  scatter_ranges <- reactiveValues(x = NULL, y = NULL)
-  observeEvent(input$scatter_dblclick, {
-    brush <- input$scatter_brush
-    if (!is.null(brush)) {
-      scatter_ranges$x <- c(brush$xmin, brush$xmax)
-      scatter_ranges$y <- c(brush$ymin, brush$ymax)
-      
-    } else {
-      scatter_ranges$x <- NULL
-      scatter_ranges$y <- NULL
-    }
-  })
   #Charts and Graphs
   observeEvent(input$inShow, {
     chartOption <- input$inCharts
@@ -445,29 +433,27 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
       selectedValue <- "Bar Chart"
     } else if (chartOption == 3) {
       #histogram
-      output$histPlot <- renderPlot({
+      output$histPlot <- renderPlotly({
         hist_1 <- obs %>% ggplot(aes_string(as.name(grp_cols[1])))
         if(length(grp_cols) == 2){
           hist_1 <- obs %>% ggplot(aes_string(as.name(grp_cols[1]), fill = as.name(grp_cols[2])))
         }
         mainPlot$data <-
           hist_1 +  geom_histogram(binwidth = input$inHistInput)
-        mainPlot$data
+        ggplotly(mainPlot$data)
       })
       selectedValue <- "Histogram"
     } else if (chartOption == 4) {
       #scatter plot
-      output$scatterPlot <- renderPlot({
+      output$scatterPlot <- renderPlotly({
         scatter_plot <-
           obs %>% ggplot(aes_string(
             x = as.name(grp_cols[1]),
             y = as.name(grp_cols[2]),
             col = "Gender"
           ))
-        scatter_plot <- scatter_plot + geom_point()
-        mainPlot$data <-
-          scatter_plot + coord_cartesian(xlim = scatter_ranges$x, ylim = scatter_ranges$y)
-        mainPlot$data
+        mainPlot$data <- scatter_plot + geom_point()
+        ggplotly(mainPlot$data)
       })
       selectedValue <- "Scatter Plot"
     } else if(chartOption == 5){
@@ -482,12 +468,6 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
     }
     updateNavbarPage(session, "inChartMenu", selected = selectedValue)
     ns <- session$ns
-    output$tableDownload <- renderUI({
-      tagList(
-        downloadButton(ns("downloadTable"), 'Download'),
-        actionButton(ns("inAddtoDB"), "Add to Dashboard")
-      )
-    })
   })
   
   #Download Table

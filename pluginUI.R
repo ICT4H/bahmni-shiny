@@ -186,7 +186,9 @@ barChartTabUI <- function(id) {
         conditionalPanel(condition="F",tabPanel("None",
                  uiOutput(""))),
         tabPanel("Table",
-                 withSpinner(tableOutput(ns("tableDF")))),
+                 withSpinner(tableOutput(ns("tableDF"))),
+                 downloadButton(ns("downloadTable"), 'Download')
+                 ),
         tabPanel("Bar Chart",
                  fluidRow(column(
                    12,
@@ -199,17 +201,12 @@ barChartTabUI <- function(id) {
                  )),
                  fluidRow(column(
                    12,
-                   withSpinner(plotOutput(ns("histPlot")))
+                   withSpinner(plotlyOutput(ns("histPlot")))
                  ))),
         tabPanel("Scatter Plot",
                  fluidRow(column(
                    12,
-                   withSpinner(plotOutput(
-                     ns("scatterPlot"),
-                     dblclick = ns("scatter_dblclick"),
-                     brush = brushOpts(id = ns("scatter_brush"),
-                                       resetOnNew = TRUE)
-                   ))
+                   withSpinner(plotlyOutput(ns("scatterPlot")))
                  ))),
         tabPanel("Map Plot", 
                   fluidRow(column(
@@ -233,7 +230,6 @@ barChartTabUI <- function(id) {
                  withSpinner(plotlyOutput(ns("boxPlot")))
                )))
         )
-    ),
-    uiOutput(ns("tableDownload")))
+    ))
   ))
 }
