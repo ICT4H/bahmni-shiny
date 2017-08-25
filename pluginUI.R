@@ -230,6 +230,7 @@ barChartTabUI <- function(id) {
                  withSpinner(plotlyOutput(ns("boxPlot")))
                )))
         )
-    ))
+    ),
+    uiOutput(ns("customToolBar")))
   ))
 }

@@ -441,7 +441,7 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
       output$tableDF <- renderTable(as.matrix(tableop), rownames = T)
       selectedValue <- "Table"
     } else if (chartOption == 2) {
-      showBarChart(input,output, grp_cols, obs)
+      showBarChart(input,output, grp_cols, obs, mainPlot)
       selectedValue <- "Bar Chart"
     } else if (chartOption == 3) {
       #histogram
@@ -450,9 +450,10 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
         if(length(grp_cols) == 2){
           hist_1 <- obs %>% ggplot(aes_string(as.name(grp_cols[1]), fill = as.name(grp_cols[2])))
         }
-        mainPlot$data <-
+        plot <-
           hist_1 +  geom_histogram(binwidth = input$inHistInput)
-        ggplotly(mainPlot$data)
+        mainPlot$data <- ggplotly(plot)
+        mainPlot$data
       })
       selectedValue <- "Histogram"
     } else if (chartOption == 4) {
@@ -464,22 +465,36 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
             y = as.name(grp_cols[2]),
             col = "Gender"
           ))
-        mainPlot$data <- scatter_plot + geom_point()
-        ggplotly(mainPlot$data)
+        plot <- scatter_plot + geom_point()
+        mainPlot$data <- ggplotly(plot)
+        mainPlot$data
       })
       selectedValue <- "Scatter Plot"
     } else if(chartOption == 5){
       showMapPlot(input,output,grp_cols,obs)
       selectedValue <- "Map Plot"
     } else if(chartOption == 6){
-      showLineChart(input,output,grp_cols,obs)
+      showLineChart(input,output,grp_cols,obs, mainPlot)
       selectedValue <- "Line Chart"
     } else if(chartOption == 7){
-      showBoxPlot(input,output,grp_cols,obs)
+      showBoxPlot(input,output,grp_cols,obs, mainPlot)
       selectedValue <- "Box Plot"
     }
     updateNavbarPage(session, "inChartMenu", selected = selectedValue)
     ns <- session$ns
+    output$customToolBar <- renderUI({   
+      tagList(    
+         actionButton(ns("inFullScreen"), "View Full Screen"),
+         bsModal(ns("plotModal"), "", ns("inFullScreen"), size = "large", withSpinner(plotlyOutput(ns("fullScreenPlot")))),
+         actionButton(ns("inAddtoDB"), "Add to Dashboard")   
+        )   
+    })
+  })
+
+  observeEvent(input$inFullScreen, {
+    if(input$inCharts != 1){
+      output$fullScreenPlot <- renderPlotly({mainPlot$data})  
+    }
   })
   
   #Download Table
@@ -511,14 +526,12 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
       if (chartOption == 1) {
         op_df <- stats:::format.ftable(tableData$data, quote = FALSE)
         write.csv(op_df, file)
-      } else{
-        ggsave(file, plot = mainPlot$data, device = "png")
       }
     }
   )
 }
 
-showBoxPlot <- function(input,output,grp_cols,obs){
+showBoxPlot <- function(input,output,grp_cols,obs, mainPlot){
   interval <- input$inTimeInterval
   if(interval == "Years"){
     obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
@@ -536,11 +549,12 @@ showBoxPlot <- function(input,output,grp_cols,obs){
   }
   p <- p + geom_boxplot() + scale_X
   output$boxPlot <- renderPlotly({
-    ggplotly(p, tooltip = c("text", "y", "fill")) %>% layout(boxmode = "group")
+    mainPlot$data <- ggplotly(p, tooltip = c("text", "y", "fill")) %>% layout(boxmode = "group")
+    mainPlot$data
   })
 }
 
-showLineChart <- function(input,output,grp_cols,obs){
+showLineChart <- function(input,output,grp_cols,obs, mapPlot){
   interval <- input$inTimeInterval
   if(interval == "Years"){
     obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
@@ -575,7 +589,8 @@ showLineChart <- function(input,output,grp_cols,obs){
     if(input$inFunction != "none"){
       plot <- plot + stat_summary(fun.y = input$inFunction, na.rm = TRUE, group = 3, color = 'black', geom ='line')
     }
-    ggplotly(plot, tooltip = c("text","group", "y"))
+    mapPlot$data <- ggplotly(plot, tooltip = c("text","group", "y"))
+    mapPlot$data
   })
 }
 
@@ -635,7 +650,7 @@ showMapPlot <- function(input,output,grp_cols,obs){
     })
 }
 
-showBarChart <- function(input,output,grp_cols,obs){
+showBarChart <- function(input,output,grp_cols,obs, mainPlot){
   output$barPlot <- renderPlotly({
     interval <- input$inTimeInterval
     if(interval == "Years"){
@@ -679,10 +694,11 @@ showBarChart <- function(input,output,grp_cols,obs){
       }
     } 
     
-    p <-ggplotly(plot,tooltip = c("text","fill", "y"))
-    for (i in 1:length(p$x$data)){
-        p$x$data[[i]]$hovertext <- NULL
+    plot <-ggplotly(plot,tooltip = c("text","fill", "y"))
+    for (i in 1:length(plot$x$data)){
+        plot$x$data[[i]]$hovertext <- NULL
     }
-    p
+    mainPlot$data <- plot
+    mainPlot$data
   })
 }
