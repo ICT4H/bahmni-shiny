@@ -536,16 +536,23 @@ showBoxPlot <- function(input,output,grp_cols,obs, mainPlot){
   if(interval == "Years"){
     obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
     scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
-    uiFormat <- '%Y'
+    uiText <- paste("format.Date(",interval,", '%Y')")
   }else if(input$inTimeInterval == "Months"){
     obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
-    scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%m-%Y"))
-    uiFormat <- '%m-%Y'
+    scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%b-%Y"))
+    uiText <- paste("format.Date(",interval,", '%b-%Y')")
+  }else if(input$inTimeInterval == "Quarters"){
+    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'quarter')
+    start <- floor_date(min(obs[[interval]]), unit = 'year')
+    end <- ceiling_date(max(obs[[interval]]), unit = 'year') - 1
+    scale_X <- scale_x_datetime(breaks = seq(start, end, by="3 month"), labels = date_format('%b-%Y'))
+    uiText <- paste("format.Date(",interval,", '%b-%Y')")
   }
+
   if(length(grp_cols) == 2){
-    p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[1]]), fill=as.name(grp_cols[[2]]), text = paste("format.Date(",interval,", uiFormat)")))
+    p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[1]]), fill=as.name(grp_cols[[2]]), text = uiText))
   }else{
-    p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[1]]), text = paste("format.Date(",interval,", uiFormat)")))
+    p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[1]]), text = uiText))
   }
   p <- p + geom_boxplot() + scale_X
   output$boxPlot <- renderPlotly({
@@ -559,11 +566,17 @@ showLineChart <- function(input,output,grp_cols,obs, mapPlot){
   if(interval == "Years"){
     obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
     scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
-    uiFormat <- '%Y'
+    uiText <- paste("format.Date(",interval,", '%Y')")
   }else if(input$inTimeInterval == "Months"){
-    scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%m-%Y"))
     obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
-    uiFormat <- '%m-%Y'
+    scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%b-%Y"))
+    uiText <- paste("format.Date(",interval,", '%b-%Y')")
+  }else if(input$inTimeInterval == "Quarters"){
+    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'quarter')
+    start <- floor_date(min(obs[[interval]]), unit = 'year')
+    end <- ceiling_date(max(obs[[interval]]), unit = 'year') - 1
+    scale_X <- scale_x_datetime(breaks = seq(start, end, by="3 month"), labels = date_format('%b-%Y'))
+    uiText <- paste("format.Date(",interval,", '%b-%Y')")
   }
   
   chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
@@ -580,7 +593,7 @@ showLineChart <- function(input,output,grp_cols,obs, mapPlot){
     }else{
       outputVar <- "total"
     }
-    plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = as.name(grp_cols[1]), group = as.name(grp_cols[1]), text = paste("format.Date(",interval,", uiFormat)")))
+    plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = as.name(grp_cols[1]), group = as.name(grp_cols[1]), text = uiText))
     plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point() 
     plot <- plot + scale_X
     if(length(grp_cols) == 2){
@@ -656,43 +669,38 @@ showBarChart <- function(input,output,grp_cols,obs, mainPlot){
     if(interval == "Years"){
       obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
       scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
-      uiFormat <- '%Y'
+      uiText <- paste("format.Date(",interval,", '%Y')")
     }else if(input$inTimeInterval == "Months"){
       obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
-      scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%m-%Y"))
-      uiFormat <- '%m-%Y'
+      scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%b-%Y"))
+      uiText <- paste("format.Date(",interval,", '%b-%Y')")
+    }else if(input$inTimeInterval == "Quarters"){
+      obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'quarter')
+      start <- floor_date(min(obs[[interval]]), unit = 'year')
+      end <- ceiling_date(max(obs[[interval]]), unit = 'year') - 1
+      scale_X <- scale_x_datetime(breaks = seq(start, end, by="3 month"), labels = date_format('%b-%Y'))
+      uiText <- paste("format.Date(",interval,", '%b-%Y')")
     }
+
     chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
     prapotionalChartData <- chartData %>%
       group_by_(.dots = c(interval)) %>%
       mutate(countT= sum(total)) %>%
       group_by_(.dots = c(lapply(grp_cols,as.name))) %>%
       mutate(percentage=round(100*total/countT,2))
-    if(length(grp_cols) == 2){
-      if(input$inProportional){
-        plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]))) + 
-          geom_bar(stat="identity", position = "dodge") +
-          scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + scale_X +
-          facet_grid(paste(as.name(grp_cols[2]), "~ .")) 
-      }else{
-        prapotionalChartData$group <- prapotionalChartData[[interval]]
-        plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]))) +
-          geom_bar(stat="identity", position = "dodge") +
-          scale_X +
-          facet_grid(paste(as.name(grp_cols[2]), "~ ."))
-      }
+    
+
+    if(input$inProportional){
+      plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]), text = uiText)) +
+        geom_bar(stat="identity", position = "dodge") +
+        scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + scale_X
+    }else{
+      plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]), text = uiText)) +
+        geom_bar(stat="identity", position = "dodge") + scale_X
     }
-    else{
-      if(input$inProportional){
-        plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]), text = paste("format.Date(",interval,", uiFormat)"))) +
-          geom_bar(stat="identity", position = "dodge") +
-          scale_y_continuous(labels = dollar_format(suffix = "%", prefix = ""))  + scale_X 
-      }else{
-        plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]), text = paste("format.Date(",interval,", uiFormat)"))) +
-          geom_bar(stat="identity", position = "dodge") +
-          scale_X
-      }
-    } 
+    if(length(grp_cols) == 2){
+      plot <- plot + facet_grid(paste(as.name(grp_cols[2]), "~ .")) 
+    }
     
     plot <-ggplotly(plot,tooltip = c("text","fill", "y"))
     for (i in 1:length(plot$x$data)){

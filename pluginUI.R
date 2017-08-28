@@ -172,7 +172,7 @@ barChartTabUI <- function(id) {
       ),
       checkboxInput(ns("inProportional"), "Proportional", value = F),
       selectInput(ns("inTimeInterval"), "Time Interval"
-        ,choices = c("Years","Months"),
+        ,choices = c("Years","Quarters","Months"),
         selected = 1,
         multiple = F),
       actionButton(ns("inShow"), "Show", class="btn-primary")
