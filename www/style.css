@@ -30,5 +30,8 @@ fieldset legend{
 	margin:0;
 	line-height:0
 }
+div[id$="-plotModal"] > div {
+    width: 90%;
+}
 
 

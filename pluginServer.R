@@ -65,13 +65,13 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     shouldFetchAll <- input$inFetchAll
     dateRange <- as.character(input$inDateRange)
     envir <- new.env()
-    mysqlPool <- getMysqlConnectionPool()
-    psqlPool <- getPsqlConnectionPool()
-    source(dataSourceFile,local=envir)
     showModal(modalDialog(
       withSpinner(p("")),
       title = "Fetching Data",
       footer = NULL, size = "s"))
+    mysqlPool <- getMysqlConnectionPool()
+    psqlPool <- getPsqlConnectionPool()
+    source(dataSourceFile,local=envir)
     mainTable$data <- envir$fetchData(mysqlPool, psqlPool, shouldFetchAll, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
     removeModal()
     disconnectFromDb(mysqlPool)
@@ -485,7 +485,7 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
     output$customToolBar <- renderUI({   
       tagList(    
          actionButton(ns("inFullScreen"), "View Full Screen"),
-         bsModal(ns("plotModal"), "", ns("inFullScreen"), size = "large", withSpinner(plotlyOutput(ns("fullScreenPlot")))),
+         bsModal(ns("plotModal"), "", ns("inFullScreen"), size = "large", plotlyOutput(ns("fullScreenPlot"), height="90vh")),
          actionButton(ns("inAddtoDB"), "Add to Dashboard")   
         )   
     })
