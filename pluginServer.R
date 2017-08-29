@@ -653,12 +653,10 @@ showBarChart <- function(input,output,grp_cols,obs, mainPlot){
     
 
     if(input$inProportional){
-      prapotionalChartData <- compeleteMissingGroups(prapotionalChartData, interval, grp_cols[1])
       plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]), text = uiText)) +
         geom_bar(stat="identity", position = "dodge") +
         scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + scale_X
     }else{
-      chartData <- compeleteMissingGroups(chartData, interval, grp_cols)
       plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]), text = uiText)) +
         geom_bar(stat="identity", position = "dodge") + scale_X
     }
@@ -693,12 +691,4 @@ formatTimeSeries <- function(obs, interval){
     uiText <- paste("format.Date(",interval,", '%b-%Y')")
   }
   return (list(obs, scale_X, uiText))
-}
-
-compeleteMissingGroups <- function(df, interval, grp_cols){
-  df[[interval]] <- as.factor(df[[interval]])
-  df[[grp_cols[1]]] <- as.factor(df[[grp_cols[1]]])
-  df <- df %>% complete_(cols = list(interval, as.name(grp_cols[1])))
-  df[[interval]] <- as.POSIXct(df[[interval]])
-  return (df)
 }
