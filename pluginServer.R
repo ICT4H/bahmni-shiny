@@ -124,16 +124,6 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     )
   })
   
-  observeEvent(input$inShowColumns, {
-    if (input$inShowColumns) {
-      shinyjs::show(id = "inColumnNamePanel")
-      updateButton(session, "inShowColumns", "Hide Column Selection")
-    } else{
-      shinyjs::hide(id = "inColumnNamePanel")
-      updateButton(session, "inShowColumns", "Show Column Selection")
-    }
-  })
-  
   output$downloadData <- downloadHandler(
     filename = function() {
       paste(
@@ -528,7 +518,7 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
     content = function(file) {
       chartOption <- input$inCharts
       if (chartOption == 1) {
-        op_df <- stats:::format.ftable(tableData$data, quote = FALSE)
+        op_df <- as.matrix(tableData$data)
         write.csv(op_df, file)
       }
     }

@@ -31,37 +31,17 @@ pluginSearchTabUI <- function(id) {
     p(""),
     conditionalPanel(
       condition = paste("input[['", id, "-incheckbox']]==1", sep = ""),
-      bsButton(
-        ns("inShowColumns"),
-        label = "Hide Column Selection",
-        block = F,
-        type = "toggle",
-        value = TRUE,
-        class="btn-primary"
-      ),
       p(""),
-      sidebarLayout(
-        div(
-          id = ns("inColumnNamePanel"),
-          sidebarPanel(width = 3,
-                       checkboxGroupInput(
-                         ns("inColumnNames"), 'Columns:',
-                         choices = c("")
-                       ))
+      conditionalPanel(
+        condition = paste("input[['", id, "-incheckbox']]==1", sep = "") ,
+        bsCollapse(
+          id = ns("inCollapseAddCols"),
+          uiForDerivedColumns(id,ns)
         ),
-        mainPanel(
-          conditionalPanel(
-            condition = paste("input[['", id, "-incheckbox']]==1", sep = "") ,
-            bsCollapse(
-              id = ns("inCollapseAddCols"),
-              uiForDerivedColumns(id,ns)
-            ),
-            DT::dataTableOutput(ns("obsDT"))
-            ,
-            downloadButton(ns("downloadData"), 'Download', class="btn-primary")
-          )
-        )
-      )
+        DT::dataTableOutput(ns("obsDT"))
+        ,
+        downloadButton(ns("downloadData"), 'Download', class="btn-primary")
+      )  
     )
   )
 }
