@@ -186,8 +186,7 @@ barChartTabUI <- function(id) {
         conditionalPanel(condition="F",tabPanel("None",
                  uiOutput(""))),
         tabPanel("Table",
-                 withSpinner(tableOutput(ns("tableDF"))),
-                 downloadButton(ns("downloadTable"), 'Download')
+                 withSpinner(tableOutput(ns("tableDF")))
                  ),
         tabPanel("Bar Chart",
                  fluidRow(column(

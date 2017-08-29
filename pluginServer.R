@@ -483,11 +483,15 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
     updateNavbarPage(session, "inChartMenu", selected = selectedValue)
     ns <- session$ns
     output$customToolBar <- renderUI({   
-      tagList(    
-         actionButton(ns("inFullScreen"), "View Full Screen"),
-         bsModal(ns("plotModal"), "", ns("inFullScreen"), size = "large", plotlyOutput(ns("fullScreenPlot"), height="90vh")),
-         actionButton(ns("inAddtoDB"), "Add to Dashboard")   
-        )   
+      if(chartOption == 1){
+        downloadButton(ns("downloadTable"), 'Download')
+      }else if(chartOption != 5){
+        tagList(    
+           actionButton(ns("inFullScreen"), "View Full Screen"),
+           bsModal(ns("plotModal"), "", ns("inFullScreen"), size = "large", plotlyOutput(ns("fullScreenPlot"), height="90vh")),
+           actionButton(ns("inAddtoDB"), "Add to Dashboard")   
+          )
+      }
     })
   })
 
@@ -533,21 +537,10 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
 
 showBoxPlot <- function(input,output,grp_cols,obs, mainPlot){
   interval <- input$inTimeInterval
-  if(interval == "Years"){
-    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
-    scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
-    uiText <- paste("format.Date(",interval,", '%Y')")
-  }else if(input$inTimeInterval == "Months"){
-    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
-    scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%b-%Y"))
-    uiText <- paste("format.Date(",interval,", '%b-%Y')")
-  }else if(input$inTimeInterval == "Quarters"){
-    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'quarter')
-    start <- floor_date(min(obs[[interval]]), unit = 'year')
-    end <- ceiling_date(max(obs[[interval]]), unit = 'year') - 1
-    scale_X <- scale_x_datetime(breaks = seq(start, end, by="3 month"), labels = date_format('%b-%Y'))
-    uiText <- paste("format.Date(",interval,", '%b-%Y')")
-  }
+  timeSeriesData <- formatTimeSeries(obs, interval)    
+  obs <- timeSeriesData[[1]]
+  scale_X <- timeSeriesData[[2]]
+  uiText <- timeSeriesData[[3]]
 
   if(length(grp_cols) == 2){
     p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[1]]), fill=as.name(grp_cols[[2]]), text = uiText))
@@ -563,21 +556,10 @@ showBoxPlot <- function(input,output,grp_cols,obs, mainPlot){
 
 showLineChart <- function(input,output,grp_cols,obs, mapPlot){
   interval <- input$inTimeInterval
-  if(interval == "Years"){
-    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
-    scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
-    uiText <- paste("format.Date(",interval,", '%Y')")
-  }else if(input$inTimeInterval == "Months"){
-    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
-    scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%b-%Y"))
-    uiText <- paste("format.Date(",interval,", '%b-%Y')")
-  }else if(input$inTimeInterval == "Quarters"){
-    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'quarter')
-    start <- floor_date(min(obs[[interval]]), unit = 'year')
-    end <- ceiling_date(max(obs[[interval]]), unit = 'year') - 1
-    scale_X <- scale_x_datetime(breaks = seq(start, end, by="3 month"), labels = date_format('%b-%Y'))
-    uiText <- paste("format.Date(",interval,", '%b-%Y')")
-  }
+  timeSeriesData <- formatTimeSeries(obs, interval)
+  obs <- timeSeriesData[[1]]
+  scale_X <- timeSeriesData[[2]]
+  uiText <- timeSeriesData[[3]]
   
   chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
   prapotionalChartData <- chartData %>%
@@ -597,7 +579,8 @@ showLineChart <- function(input,output,grp_cols,obs, mapPlot){
     plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point() 
     plot <- plot + scale_X
     if(length(grp_cols) == 2){
-      plot <- plot + facet_grid(paste(as.name(grp_cols[2]), "~ ."))
+      facetFactor = paste("`",as.name(grp_cols[2]), "`", "~ .", sep = "")
+      plot <- plot + facet_grid(facetFactor)
     }
     if(input$inFunction != "none"){
       plot <- plot + stat_summary(fun.y = input$inFunction, na.rm = TRUE, group = 3, color = 'black', geom ='line')
@@ -666,21 +649,10 @@ showMapPlot <- function(input,output,grp_cols,obs){
 showBarChart <- function(input,output,grp_cols,obs, mainPlot){
   output$barPlot <- renderPlotly({
     interval <- input$inTimeInterval
-    if(interval == "Years"){
-      obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
-      scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
-      uiText <- paste("format.Date(",interval,", '%Y')")
-    }else if(input$inTimeInterval == "Months"){
-      obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
-      scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%b-%Y"))
-      uiText <- paste("format.Date(",interval,", '%b-%Y')")
-    }else if(input$inTimeInterval == "Quarters"){
-      obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'quarter')
-      start <- floor_date(min(obs[[interval]]), unit = 'year')
-      end <- ceiling_date(max(obs[[interval]]), unit = 'year') - 1
-      scale_X <- scale_x_datetime(breaks = seq(start, end, by="3 month"), labels = date_format('%b-%Y'))
-      uiText <- paste("format.Date(",interval,", '%b-%Y')")
-    }
+    timeSeriesData <- formatTimeSeries(obs, interval)    
+    obs <- timeSeriesData[[1]]
+    scale_X <- timeSeriesData[[2]]
+    uiText <- timeSeriesData[[3]]
 
     chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
     prapotionalChartData <- chartData %>%
@@ -699,14 +671,34 @@ showBarChart <- function(input,output,grp_cols,obs, mainPlot){
         geom_bar(stat="identity", position = "dodge") + scale_X
     }
     if(length(grp_cols) == 2){
-      plot <- plot + facet_grid(paste(as.name(grp_cols[2]), "~ .")) 
+      facetFactor = paste("`",as.name(grp_cols[2]), "`", "~ .", sep = "")
+      plot <- plot + facet_grid(facetFactor)
     }
     
-    plot <-ggplotly(plot,tooltip = c("text","fill", "y"))
+    plot <-ggplotly(plot, tooltip = c("text","fill", "y"))
     for (i in 1:length(plot$x$data)){
         plot$x$data[[i]]$hovertext <- NULL
     }
     mainPlot$data <- plot
     mainPlot$data
   })
+}
+
+formatTimeSeries <- function(obs, interval){
+  if(interval == "Years"){
+    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
+    scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
+    uiText <- paste("format.Date(",interval,", '%Y')")
+  }else if(interval == "Months"){
+    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
+    scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%b-%Y"))
+    uiText <- paste("format.Date(",interval,", '%b-%Y')")
+  }else if(interval == "Quarters"){
+    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'quarter')
+    start <- floor_date(min(obs[[interval]]), unit = 'year')
+    end <- ceiling_date(max(obs[[interval]]), unit = 'year')
+    scale_X <- scale_x_datetime(breaks = seq(start, end, by="3 month"), labels = date_format('%b-%Y'))
+    uiText <- paste("format.Date(",interval,", '%b-%Y')")
+  }
+  return (list(obs, scale_X, uiText))
 }
