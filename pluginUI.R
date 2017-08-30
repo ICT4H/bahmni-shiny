@@ -103,11 +103,9 @@ uiForNumericVariables <- function(id, ns){
                ns("inNumericCols"), "Numeric Columns:", choices = c("")
              )),
       column(2,
-             numericInput(ns("inStartRange"), "Start", value =
-                            "")),
+             numericInput(ns("inStartRange"), "Start", value = "")),
       column(2,
-             numericInput(ns("inEndRange"), "End", value =
-                            ""))
+             numericInput(ns("inEndRange"), "End", value = ""))
     ),
     conditionalPanel(
         condition = paste("input[['", id, "-inTwoVariables']]==1", sep = ""),
@@ -137,28 +135,44 @@ barChartTabUI <- function(id) {
     # Application title
     headerPanel(""),
     
-    # Sidebar with a slider input
     sidebarPanel(
-      selectInput(ns("inFactor1"), 'Choose Factor 1:',
-                         choices = c("")),
-      selectInput(ns("inFactor2"), 'Choose Factor 2:',
-                         choices = c("")),
-      selectInput(
-        ns("inCharts"),
-        'Charts:',
-        choices = c("Table", "Bar Chart", "Histogram",
-         "Scatter Plot", "Map Plot", "Line Chart", "Box Plot"),
-        multiple = F
-      ),
-      checkboxInput(ns("inProportional"), "Proportional", value = F),
-      selectInput(ns("inTimeInterval"), "Time Interval"
-        ,choices = c("Years","Quarters","Months"),
-        selected = 1,
-        multiple = F),
-      actionButton(ns("inShow"), "Show", class="btn-primary")
+      uiForPlotFactors(id,ns)  
     ),
-    # Show a plot of the generated distribution
-    mainPanel(navbarPage(
+    
+    mainPanel(uiForPlots(id, ns))
+  ))
+}
+
+uiForPlotFactors <- function(id, ns){
+  tagList(
+    selectInput(ns("inFactor1"), 'Choose Factor 1:',
+                         choices = c("")),
+    selectInput(ns("inFactor2"), 'Choose Factor 2:',
+                       choices = c("")),
+    selectInput(
+      ns("inCharts"),
+      'Charts:',
+      choices = list("Table" = 1,
+       "Bar Chart" = 2,
+       "Histogram" = 3,
+       "Scatter Plot" = 4,
+       "Map Plot" = 5,
+       "Line Chart" = 6,
+       "Box Plot" = 7),
+      multiple = F
+    ),
+    checkboxInput(ns("inProportional"), "Proportional", value = F),
+    selectInput(ns("inTimeInterval"), "Time Interval"
+      ,choices = c("Years","Quarters","Months"),
+      selected = 1,
+      multiple = F),
+    actionButton(ns("inShow"), "Show", class="btn-primary")
+  )
+}
+
+uiForPlots <- function(id, ns){
+  tagList(
+    navbarPage(
       "",
       id = ns("inChartMenu"),
       navbarMenu(
@@ -210,6 +224,6 @@ barChartTabUI <- function(id) {
                )))
         )
     ),
-    uiOutput(ns("customToolBar")))
-  ))
+    uiOutput(ns("customToolBar"))
+  )
 }

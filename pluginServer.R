@@ -5,13 +5,6 @@ plugin <- function(input, output, session, dataSourceFile, pluginName){
   
   callModule(pluginSearchTab, "search", mainTable, dataSourceFile, pluginName)
   callModule(barChartTab, "barChart", mainTable, tableData, mainPlot)
-  selectChoices <-
-    reactiveValues(data = list(
-      "Class" = 1,
-      "Question" = 2,
-      "Answer" = 3
-    )
-  )
   observeEvent(input$inTabPanel, {
     if (input$inTabPanel == "Bar and Charts") {
       updateSelectInput(
@@ -26,21 +19,6 @@ plugin <- function(input, output, session, dataSourceFile, pluginName){
         choices = c("",names(mainTable$data)),
         selected = NULL
       )
-
-      updateSelectInput(
-        session,
-        "barChart-inCharts",
-        choices = list(
-          "Table" = 1,
-          "Bar Chart" = 2,
-          "Histogram" = 3,
-          "Scatter Plot" = 4,
-          "Map Plot" = 5,
-          "Line Chart" = 6,
-          "Box Plot" = 7
-        )
-      )
-      
     }
   })
 }
@@ -66,9 +44,9 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     dateRange <- as.character(input$inDateRange)
     envir <- new.env()
     showModal(modalDialog(
-      withSpinner(p("")),
-      title = "Fetching Data",
-      footer = NULL, size = "s"))
+      withSpinner(p("")),title = "Fetching Data",
+      footer = NULL, size = "s")
+    )
     mysqlPool <- getMysqlConnectionPool()
     psqlPool <- getPsqlConnectionPool()
     source(dataSourceFile,local=envir)
@@ -83,27 +61,14 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
       rownames = F,
       filter = "top"
     )
-  })
 
-  observeEvent(input$inApply, {
-    updateCheckboxGroupInput(
-      session,
-      "inColumnNames",
-      choices = names(mainTable$data),
-      selected = names(mainTable$data)
-    )
     if (length(names(mainTable$data)) > 0) {
-      updateCheckboxInput(session,
-                          "incheckbox",
-                          value = T)
+      updateCheckboxInput(session,"incheckbox", value = T)
     }
     else{
-      showModal(modalDialog(
-        "There is no data available for selected data range!"
-      ))
-      updateCheckboxInput(session,
-                          "incheckbox",
-                          value = F)
+      message <- "There is no data available for selected data range!"
+      showModal(modalDialog(message))
+      updateCheckboxInput(session, "incheckbox", value = F)
     }
     updateNumericInput(session, "inStartRange", value = "")
     updateNumericInput(session, "inEndRange", value = "")
@@ -112,18 +77,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     updateTextInput(session, "inCategoryName", value = "")
     output$newColumnCategories <- renderTable(do.call("rbind", list()))
   })
-  
-  observeEvent(input$inColumnNames, {
-    obs <- mainTable$data
-    obs <- obs[, input$inColumnNames, drop = F]
-    output$obsDT <- DT::renderDataTable(
-      obs,
-      options = list(paging = T),
-      rownames = F,
-      filter = "top"
-    )
-  })
-  
+
   output$downloadData <- downloadHandler(
     filename = function() {
       paste(
@@ -151,12 +105,6 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
   #Add Categorical Columns
   observeEvent(input$inCollapseAddCols, {
     if (!is.null(mainTable$data)) {
-      isDate <- function(mydate){
-        tryCatch({
-            is.Date(as.Date(mydate))},
-             error = function(err){FALSE}
-        )
-      } 
       isNumericColumn <- mainTable$data %>% map_lgl(is.numeric)
       numericColumns <- names(mainTable$data)[isNumericColumn]
       
@@ -339,7 +287,6 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     }else{
       df_list <- deriveWithOneVarNumeric(colDef, columnName, mainTable)
     }      
-
     df_list <- df_list %>% map(function(x) {
       filter_criteria <-
         lazyeval::interp( ~ !is.na(a), a = as.name(columnName))
@@ -371,10 +318,6 @@ deriveWithOneVarNumeric <- function(colDef, columnName, mainTable) {
   ranges <- colDef$categories %>% map("Range")
   categoryNames <- colDef$categories %>% map_chr("Name")
 
-  mutate_call <- lazyeval::interp( ~ a , a = as.name(firstColName))
-  mainTable$data <-
-    mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), firstColName))
-
   categoryNames %>% map2(.y = ranges, function(x, y, df) {
     mutate_call_ip <- lazyeval::interp( ~ ifelse(a >= y[[1]] & a <= y[[2]] , x[[1]], NA) ,
                         a = as.name(firstColName))
@@ -389,14 +332,6 @@ deriveWithTwoVarsNumeric <- function(colDef, columnName, mainTable) {
   ranges <- colDef$categories %>% map("Range")
   categoryNames <- colDef$categories %>% map_chr("Name")
   
-  mutate_call <- lazyeval::interp( ~ a , a = as.name(firstColName))
-  mainTable$data <-
-    mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), firstColName))
-
-  mutate_call <- lazyeval::interp( ~ a , a = as.name(secondColName))
-  mainTable$data <-
-    mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), secondColName))
-
   categoryNames %>% map2(.y = ranges, function(x, y, df) {
     mutate_call_ip <- lazyeval::interp( ~ ifelse(a >= y[[1]] & a <= y[[2]] & b >= y[[3]] & b <= y[[4]] , x[[1]], NA) ,
                         a = as.name(firstColName), b = as.name(secondColName))
@@ -415,59 +350,32 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
       ))
       return()
     }
-    grp_cols <- c(input$inFactor1)
+    selected_cols <- c(input$inFactor1)
     if(!identical(input$inFactor2, "")){
-      grp_cols <- c(grp_cols, input$inFactor2)  
+      selected_cols <- c(selected_cols, input$inFactor2)  
     }
     
     obs <- mainTable$data
-    dots <- lapply(grp_cols, as.symbol)
     if (chartOption == 1) {
-      tableop <- ftable(droplevels(obs[grp_cols]))
-      if(input$inProportional){
-        tableop <- prop.table(tableop)
-      }
-      tableData$data <- tableop
-      output$tableDF <- renderTable(as.matrix(tableop), rownames = T)
+      showTable(obs, input, output, tableData, selected_cols)
       selectedValue <- "Table"
     } else if (chartOption == 2) {
-      showBarChart(input,output, grp_cols, obs, mainPlot)
+      showBarChart(input,output, selected_cols, obs, mainPlot)
       selectedValue <- "Bar Chart"
     } else if (chartOption == 3) {
-      #histogram
-      output$histPlot <- renderPlotly({
-        hist_1 <- obs %>% ggplot(aes_string(as.name(grp_cols[1])))
-        if(length(grp_cols) == 2){
-          hist_1 <- obs %>% ggplot(aes_string(as.name(grp_cols[1]), fill = as.name(grp_cols[2])))
-        }
-        plot <-
-          hist_1 +  geom_histogram(binwidth = input$inHistInput)
-        mainPlot$data <- ggplotly(plot)
-        mainPlot$data
-      })
+      showHistogram(obs, input, output, mainPlot, selected_cols)
       selectedValue <- "Histogram"
     } else if (chartOption == 4) {
-      #scatter plot
-      output$scatterPlot <- renderPlotly({
-        scatter_plot <-
-          obs %>% ggplot(aes_string(
-            x = as.name(grp_cols[1]),
-            y = as.name(grp_cols[2]),
-            col = "Gender"
-          ))
-        plot <- scatter_plot + geom_point()
-        mainPlot$data <- ggplotly(plot)
-        mainPlot$data
-      })
+      showScatterPlot(obs, output, selected_cols, mainPlot)
       selectedValue <- "Scatter Plot"
     } else if(chartOption == 5){
-      showMapPlot(input,output,grp_cols,obs)
+      showMapPlot(input,output,selected_cols,obs)
       selectedValue <- "Map Plot"
     } else if(chartOption == 6){
-      showLineChart(input,output,grp_cols,obs, mainPlot)
+      showLineChart(input,output,selected_cols,obs, mainPlot)
       selectedValue <- "Line Chart"
     } else if(chartOption == 7){
-      showBoxPlot(input,output,grp_cols,obs, mainPlot)
+      showBoxPlot(input,output,selected_cols,obs, mainPlot)
       selectedValue <- "Box Plot"
     }
     updateNavbarPage(session, "inChartMenu", selected = selectedValue)
@@ -525,17 +433,53 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
   )
 }
 
-showBoxPlot <- function(input,output,grp_cols,obs, mainPlot){
+showTable <- function(obs, input, output, tableData, selected_cols){
+  tableop <- ftable(droplevels(obs[selected_cols]))
+  if(input$inProportional){
+    tableop <- prop.table(tableop)
+  }
+  tableData$data <- tableop
+  output$tableDF <- renderTable(as.matrix(tableop), rownames = T)
+}
+
+showHistogram <- function(obs, input, output, mainPlot, selected_cols){
+  output$histPlot <- renderPlotly({
+    hist_1 <- obs %>% ggplot(aes_string(as.name(selected_cols[1])))
+    if(length(selected_cols) == 2){
+      hist_1 <- obs %>% ggplot(aes_string(as.name(selected_cols[1]), fill = as.name(selected_cols[2])))
+    }
+    plot <-
+      hist_1 +  geom_histogram(binwidth = input$inHistInput)
+    mainPlot$data <- ggplotly(plot)
+    mainPlot$data
+  })
+}
+
+showScatterPlot <- function(obs, output, selected_cols, mainPlot){
+  output$scatterPlot <- renderPlotly({
+    scatter_plot <-
+      obs %>% ggplot(aes_string(
+        x = as.name(selected_cols[1]),
+        y = as.name(selected_cols[2]),
+        col = "Gender"
+      ))
+    plot <- scatter_plot + geom_point()
+    mainPlot$data <- ggplotly(plot)
+    mainPlot$data
+  })
+}
+
+showBoxPlot <- function(input,output,selected_cols,obs, mainPlot){
   interval <- input$inTimeInterval
   timeSeriesData <- formatTimeSeries(obs, interval)    
   obs <- timeSeriesData[[1]]
   scale_X <- timeSeriesData[[2]]
   uiText <- timeSeriesData[[3]]
 
-  if(length(grp_cols) == 2){
-    p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[1]]), fill=as.name(grp_cols[[2]]), text = uiText))
+  if(length(selected_cols) == 2){
+    p <- ggplot(obs, aes_string(x=interval, y=as.name(selected_cols[[1]]), fill=as.name(selected_cols[[2]]), text = uiText))
   }else{
-    p <- ggplot(obs, aes_string(x=interval, y=as.name(grp_cols[[1]]), text = uiText))
+    p <- ggplot(obs, aes_string(x=interval, y=as.name(selected_cols[[1]]), text = uiText))
   }
   p <- p + geom_boxplot() + scale_X
   output$boxPlot <- renderPlotly({
@@ -544,18 +488,18 @@ showBoxPlot <- function(input,output,grp_cols,obs, mainPlot){
   })
 }
 
-showLineChart <- function(input,output,grp_cols,obs, mapPlot){
+showLineChart <- function(input,output,selected_cols,obs, mapPlot){
   interval <- input$inTimeInterval
   timeSeriesData <- formatTimeSeries(obs, interval)
   obs <- timeSeriesData[[1]]
   scale_X <- timeSeriesData[[2]]
   uiText <- timeSeriesData[[3]]
   
-  chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
+  chartData <- obs %>% group_by_(.dots = c(lapply(selected_cols,as.name), interval)) %>% summarise(total = n())
   prapotionalChartData <- chartData %>%
       group_by_(.dots = c(interval)) %>%
       mutate(countT= sum(total)) %>%
-      group_by_(.dots = c(lapply(grp_cols,as.name))) %>%
+      group_by_(.dots = c(lapply(selected_cols,as.name))) %>%
       mutate(percentage=round(100*total/countT,2))
 
   output$lineChart <- renderPlotly({
@@ -565,11 +509,11 @@ showLineChart <- function(input,output,grp_cols,obs, mapPlot){
     }else{
       outputVar <- "total"
     }
-    plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = as.name(grp_cols[1]), group = as.name(grp_cols[1]), text = uiText))
+    plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = as.name(selected_cols[1]), group = as.name(selected_cols[1]), text = uiText))
     plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point() 
     plot <- plot + scale_X
-    if(length(grp_cols) == 2){
-      facetFactor = paste("`",as.name(grp_cols[2]), "`", "~ .", sep = "")
+    if(length(selected_cols) == 2){
+      facetFactor = paste("`",as.name(selected_cols[2]), "`", "~ .", sep = "")
       plot <- plot + facet_grid(facetFactor)
     }
     if(input$inFunction != "none"){
@@ -603,23 +547,23 @@ fetchGeoCode <- function(addresses){
   data.frame(lat,lon)
 }
 
-showMapPlot <- function(input,output,grp_cols,obs){
-  if(!identical(grp_cols[1], "State") && !identical(grp_cols[1], "District")){
+showMapPlot <- function(input,output,selected_cols,obs){
+  if(!identical(selected_cols[1], "State") && !identical(selected_cols[1], "District")){
     showModal(modalDialog(
       "Map plot can only work with State or District!"
     ))
     return()
   }
-  if(length(grp_cols) > 1){
+  if(length(selected_cols) > 1){
     showNotification(
       "Map Plot works for just one Factor, We will consider Factor 1!",
       type = "warning",
       duration = NULL
     )
   }
-  chartData <- obs %>% group_by_(.dots = c(as.name(grp_cols[1]))) %>% summarise(total = n())
-  chartData <- subset(chartData, !is.na(chartData[[grp_cols[1]]])) 
-  locs_geo <- fetchGeoCode(chartData[[grp_cols[1]]])
+  chartData <- obs %>% group_by_(.dots = c(as.name(selected_cols[1]))) %>% summarise(total = n())
+  chartData <- subset(chartData, !is.na(chartData[[selected_cols[1]]])) 
+  locs_geo <- fetchGeoCode(chartData[[selected_cols[1]]])
   chartData <- cbind(chartData, locs_geo)
   maxRow <- chartData[which.max(chartData$total), ]
 
@@ -628,7 +572,7 @@ showMapPlot <- function(input,output,grp_cols,obs){
     setView(maxRow$lon ,maxRow$lat, zoom = 9) %>%
     addTiles() %>%
           addCircleMarkers(~lon, ~lat,
-           popup = ~as.character(chartData[[grp_cols[1]]]),
+           popup = ~as.character(chartData[[selected_cols[1]]]),
            label = ~as.character(total),
            labelOptions = labelOptions(noHide = T, direction = 'top', textOnly = T),
              radius = 20
@@ -636,7 +580,7 @@ showMapPlot <- function(input,output,grp_cols,obs){
     })
 }
 
-showBarChart <- function(input,output,grp_cols,obs, mainPlot){
+showBarChart <- function(input,output,selected_cols,obs, mainPlot){
   output$barPlot <- renderPlotly({
     interval <- input$inTimeInterval
     timeSeriesData <- formatTimeSeries(obs, interval)    
@@ -644,24 +588,23 @@ showBarChart <- function(input,output,grp_cols,obs, mainPlot){
     scale_X <- timeSeriesData[[2]]
     uiText <- timeSeriesData[[3]]
 
-    chartData <- obs %>% group_by_(.dots = c(lapply(grp_cols,as.name), interval)) %>% summarise(total = n())
+    chartData <- obs %>% group_by_(.dots = c(lapply(selected_cols,as.name), interval)) %>% summarise(total = n())
     prapotionalChartData <- chartData %>%
       group_by_(.dots = c(interval)) %>%
       mutate(countT= sum(total)) %>%
-      group_by_(.dots = c(lapply(grp_cols,as.name))) %>%
+      group_by_(.dots = c(lapply(selected_cols,as.name))) %>%
       mutate(percentage=round(100*total/countT,2))
-    
 
     if(input$inProportional){
-      plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(grp_cols[1]), text = uiText)) +
+      plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(selected_cols[1]), text = uiText)) +
         geom_bar(stat="identity", position = "dodge") +
         scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + scale_X
     }else{
-      plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(grp_cols[1]), text = uiText)) +
+      plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(selected_cols[1]), text = uiText)) +
         geom_bar(stat="identity", position = "dodge") + scale_X
     }
-    if(length(grp_cols) == 2){
-      facetFactor = paste("`",as.name(grp_cols[2]), "`", "~ .", sep = "")
+    if(length(selected_cols) == 2){
+      facetFactor = paste("`",as.name(selected_cols[2]), "`", "~ .", sep = "")
       plot <- plot + facet_grid(facetFactor)
     }
     

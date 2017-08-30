@@ -50,6 +50,7 @@ ui <- fluidPage(
 properties <- read.properties("app.properties")
 
 initializeApp <- function(input, output, session) {
+  #should be one time manual task and path must come as property
   if(!dir.exists("derivedColumns")){
     dir.create("derivedColumns")
   }
