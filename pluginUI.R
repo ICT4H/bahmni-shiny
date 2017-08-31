@@ -6,7 +6,7 @@ pluginUI <- function(id) {
       id=ns("inTabPanel"),
       tabPanel("Search", pluginSearchTabUI(ns("search"))),
       tabPanel("Bar and Charts", barChartTabUI(ns("barChart"))),
-      tabPanel("Dashboard")
+      tabPanel("Dashboard", dashboardTabUI(ns("dashboard")))
     )
   )
 }
@@ -14,16 +14,7 @@ pluginUI <- function(id) {
 pluginSearchTabUI <- function(id) {
   ns <- NS(id)
   tagList(
-    p(""),
-    checkboxInput(ns("inFetchAll"), label="Fetch All Data", value = F),
-    conditionalPanel(
-      condition = paste("input[['", id, "-inFetchAll']]==0", sep = ""),
-      dateRangeInput(ns("inDateRange"),
-      label = 'Range',
-      start = Sys.Date() - 365,
-      end = Sys.Date()
-    )),
-    actionButton(ns("inApply"), "Apply", class="btn-primary"),
+    uiForFetchData(id, ns),
     conditionalPanel(condition = "1==0",
                      checkboxInput(
                        ns("incheckbox"), label = "Choice A", value = F
@@ -225,5 +216,28 @@ uiForPlots <- function(id, ns){
         )
     ),
     uiOutput(ns("customToolBar"))
+  )
+}
+
+uiForFetchData <- function(id, ns){
+  tagList(
+    p(""),
+    checkboxInput(ns("inFetchAll"), label="Fetch All Data", value = F),
+    conditionalPanel(
+      condition = paste("input[['", id, "-inFetchAll']]==0", sep = ""),
+      dateRangeInput(ns("inDateRange"),
+      label = 'Range',
+      start = Sys.Date() - 365,
+      end = Sys.Date()
+    )),
+    actionButton(ns("inApply"), "Apply", class="btn-primary")
+  )  
+}
+
+dashboardTabUI <- function(id){
+  ns <- NS(id)
+  tagList(
+    uiForFetchData(id, ns),
+    uiOutput(ns("dashboardPlots"))
   )
 }

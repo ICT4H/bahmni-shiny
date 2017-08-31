@@ -1,7 +1,5 @@
 library(properties)
 
-properties <- read.properties("app.properties")
-
 host <- properties$host
 identityFilePath <- properties$identityFilePath
 sshUsername <- properties$sshUsername

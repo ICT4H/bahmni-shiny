@@ -1,10 +1,14 @@
-plugin <- function(input, output, session, dataSourceFile, pluginName){
+plugin <- function(input, output, session, dataSourceFile, pluginName, preferencesFolderPath){
   mainTable <- reactiveValues(data = NULL)
   mainPlot <- reactiveValues(data = NULL)
   tableData <- reactiveValues(data = NULL)
+  plotsForDashboard <- reactiveValues(data = NULL)
   
-  callModule(pluginSearchTab, "search", mainTable, dataSourceFile, pluginName)
+  colDefFilePath = paste(preferencesFolderPath,"/",pluginName,"-columns.json",sep="")
+  dashboardFilePath = paste(preferencesFolderPath,"/",pluginName,"-dashboard.json",sep="")
+  callModule(pluginSearchTab, "search", mainTable, dataSourceFile, colDefFilePath)
   callModule(barChartTab, "barChart", mainTable, tableData, mainPlot)
+  callModule(dashboardTab, "dashboard", dataSourceFile, plotsForDashboard, dashboardFilePath)
   observeEvent(input$inTabPanel, {
     if (input$inTabPanel == "Bar and Charts") {
       updateSelectInput(
@@ -23,11 +27,29 @@ plugin <- function(input, output, session, dataSourceFile, pluginName){
   })
 }
 
-pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, pluginName) {
+fetchDataForPlugin <- function(input, dataSourceFile){
+  shouldFetchAll <- input$inFetchAll
+  dateRange <- as.character(input$inDateRange)
+  envir <- new.env()
+  showModal(modalDialog(
+    withSpinner(p("")),title = "Fetching Data",
+    footer = NULL, size = "s")
+  )
+  mysqlPool <- getMysqlConnectionPool()
+  psqlPool <- getPsqlConnectionPool()
+  source(dataSourceFile,local=envir)
+  data <- envir$fetchData(mysqlPool, psqlPool, shouldFetchAll, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
+  removeModal()
+  disconnectFromDb(mysqlPool)
+  disconnectFromDb(psqlPool)
+  envir <- NULL
+  data
+}
+
+pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, colDefFilePath) {
   existingColumnDefs <- reactiveValues(data = NULL)
-  colDefFileName <- paste("derivedColumns/",pluginName,".json",sep="")
-  if(file.exists(colDefFileName)){
-    existingColumnDefs$data <- fromJSON(file=colDefFileName) 
+  if(file.exists(colDefFilePath)){
+    existingColumnDefs$data <- fromJSON(file=colDefFilePath) 
   }else{
     existingColumnDefs$data <- list()
   }
@@ -40,21 +62,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
   })
 
   observeEvent(input$inApply, {
-    shouldFetchAll <- input$inFetchAll
-    dateRange <- as.character(input$inDateRange)
-    envir <- new.env()
-    showModal(modalDialog(
-      withSpinner(p("")),title = "Fetching Data",
-      footer = NULL, size = "s")
-    )
-    mysqlPool <- getMysqlConnectionPool()
-    psqlPool <- getPsqlConnectionPool()
-    source(dataSourceFile,local=envir)
-    mainTable$data <- envir$fetchData(mysqlPool, psqlPool, shouldFetchAll, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
-    removeModal()
-    disconnectFromDb(mysqlPool)
-    disconnectFromDb(psqlPool)
-    envir <- NULL
+    mainTable$data <- fetchDataForPlugin(input, dataSourceFile)
     output$obsDT <- DT::renderDataTable(
       mainTable$data,
       options = list(paging = T),
@@ -199,7 +207,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
     
     existingColumnDefs$data[[columnName]] <- result
     
-    write_lines(toJSON(existingColumnDefs$data), colDefFileName)
+    write_lines(toJSON(existingColumnDefs$data), colDefFilePath)
     output$newColumnCategories <- renderTable(do.call("rbind", list()))
     catColumns$data <- list()
     updateTextInput(session,"inDerivedColumnName",value = "")
@@ -216,7 +224,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, p
   observeEvent(input$inDeleteColumn,{
     columnName <- input$inColumnDefs
     existingColumnDefs$data[[columnName]] <- NULL
-    write_lines(toJSON(existingColumnDefs$data), colDefFileName)
+    write_lines(toJSON(existingColumnDefs$data), colDefFilePath)
     showNotification(
       paste("Column Definition for", columnName, "is deleted successfully."),
       type = "message"
@@ -634,4 +642,26 @@ formatTimeSeries <- function(obs, interval){
     uiText <- paste("format.Date(",interval,", '%b-%Y')")
   }
   return (list(obs, scale_X, uiText))
+}
+
+dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath){
+  if(file.exists(dashboardFilePath)){
+    plotsForDashboard$data <- fromJSON(file=dashboardFilePath) 
+  }else{
+    plotsForDashboard$data <- list()
+    output$dashboardPlots <- renderUI({
+      h3("There are no plots added to dashboard")
+    })
+  }
+  observeEvent(input$apply, {
+    data <- fetchDataForPlugin(input, dataSourceFile)
+    if(nrow(data) <= 0){
+      message <- "There is no data available for selected data range!"
+      showModal(modalDialog(message))
+      return()
+    }
+    output$dashboardPlots <- renderUI({
+      h3("There are no plots added to dashboard")
+    })
+  })
 }

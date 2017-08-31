@@ -1,5 +1,5 @@
 #### Log in module ###
-con = dbConnect(SQLite(), dbname="shiny.sqlite")
+con = dbConnect(SQLite(), dbname=properties$sqliteDbFilePath)
 myQuery <- dbSendQuery(con, "SELECT username,password FROM users")
 users <- dbFetch(myQuery, n = Inf)
 USER <- reactiveValues(Logged = F)
