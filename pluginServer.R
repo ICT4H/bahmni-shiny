@@ -500,45 +500,60 @@ dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboa
     })
   }
 
-  # observe({
-  #   # bsCollapse(
-  #   #       id = ns("inCollapseAddCols"),
-  #   #       uiForDerivedColumns(id,ns)
-  #   #     ),
-  #   output$dashboardPlots <- renderUI({
-  #     i <- 1
-  #     panels <- lapply(names(plotsForDashboard$data), function(x){
-  #       plot <- plotsForDashboard$data[x]
-  #       bsCollapsePanel(x, tagList(
-  #         fluidRow(
-  #           column(4,dateRangeInput(ns(paste("inDateRange-",i,sep=""))),
-  #           column(4,actionButton(ns(paste("inApply",i,sep="")), "Apply", class="btn-primary"))
-  #         ),
-  #         withSpinner(plotlyOutput(ns(paste("plot",i,sep=""))))
-  #       ))
-  #       observeEvent(input[[paste("inApply", i, sep="")]], {
-  #           dateRange <- as.character(input[[paste("inDateRange-",i,sep=""]])
-  #           data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile)
+  observe({
+    ns <- session$ns
+    output$dashboardPlots <- renderUI({
+      i <- 1
+      panels <- lapply(names(plotsForDashboard$data), function(x){
+        dateRangeInputID <- paste("inDateRange-",i,sep="")
+        applyButtonID <- paste("inApply-",i,sep="")
+        plotID <- paste("plot-",i,sep="")
 
+        plot <- plotsForDashboard$data[[x]]
+        panel <- bsCollapsePanel(x, tagList(
+            fluidRow(
+              column(4, 
+                dateRangeInput(ns(dateRangeInputID),
+                  label = 'Range',
+                  start = Sys.Date() - 365,
+                  end = Sys.Date()
+                )
+              ),
+              column(4,actionButton(ns(applyButtonID), "Apply", class="btn-primary"))
+            )
+          ),
+          fluidRow(plotlyOutput(ns(plotID)))
+        )
+        observeEvent(input[[applyButtonID]], {
+          dateRange <- as.character(input[[dateRangeInputID]])
+          data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile)
+          output[[plotID]] <- renderPlotly({
+            plotToShow <- showBarChart(data,
+              plot[["timeInterval"]],
+              plot[["isProportional"]],
+              c(plot[["factor1"]], plot[["factor2"]])
+            )
+            plotToShow %>% layout(height = 600, width = 960)
+          })
+        })
+        i <<- i + 1
+        panel
+      })
+      do.call(bsCollapse, panels)
+    })
+  })
 
-  #       })
-  #       i <<- i + 1
-  #     })
-  #     do.call(bsCollapse, panels)
-  #   })
-  # })
-
-  # observeEvent(input$inApply, {
-  #   shouldFetchAll <- input$inFetchAll
-  #   dateRange <- as.character(input$inDateRange)  
-  #   data <- fetchDataForPlugin(dateRange, shouldFetchAll, dataSourceFile)
-  #   if(nrow(data) <= 0){
-  #     message <- "There is no data available for selected data range!"
-  #     showModal(modalDialog(message))
-  #     return()
-  #   }
-  #   output$dashboardPlots <- renderUI({
+  observeEvent(input$inApply, {
+    shouldFetchAll <- input$inFetchAll
+    dateRange <- as.character(input$inDateRange)  
+    data <- fetchDataForPlugin(dateRange, shouldFetchAll, dataSourceFile)
+    if(nrow(data) <= 0){
+      message <- "There is no data available for selected data range!"
+      showModal(modalDialog(message))
+      return()
+    }
+    output$dashboardPlots <- renderUI({
       
-  #   })
-  # })
+    })
+  })
 }
