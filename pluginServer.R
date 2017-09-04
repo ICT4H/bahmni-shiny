@@ -7,8 +7,9 @@ plugin <- function(input, output, session, dataSourceFile, pluginName, preferenc
   colDefFilePath = paste(preferencesFolderPath,"/",pluginName,"-columns.json",sep="")
   dashboardFilePath = paste(preferencesFolderPath,"/",pluginName,"-dashboard.json",sep="")
   callModule(pluginSearchTab, "search", mainTable, dataSourceFile, colDefFilePath)
-  callModule(barChartTab, "barChart", mainTable, tableData, mainPlot)
+  callModule(barChartTab, "barChart", mainTable, tableData, mainPlot, plotsForDashboard, dashboardFilePath)
   callModule(dashboardTab, "dashboard", dataSourceFile, plotsForDashboard, dashboardFilePath)
+
   observeEvent(input$inTabPanel, {
     if (input$inTabPanel == "Bar and Charts") {
       updateSelectInput(
@@ -27,9 +28,7 @@ plugin <- function(input, output, session, dataSourceFile, pluginName, preferenc
   })
 }
 
-fetchDataForPlugin <- function(input, dataSourceFile){
-  shouldFetchAll <- input$inFetchAll
-  dateRange <- as.character(input$inDateRange)
+fetchDataForPlugin <- function(dateRange, shouldFetchAll, dataSourceFile){
   envir <- new.env()
   showModal(modalDialog(
     withSpinner(p("")),title = "Fetching Data",
@@ -62,7 +61,9 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, c
   })
 
   observeEvent(input$inApply, {
-    mainTable$data <- fetchDataForPlugin(input, dataSourceFile)
+    shouldFetchAll <- input$inFetchAll
+    dateRange <- as.character(input$inDateRange)
+    mainTable$data <- fetchDataForPlugin(dateRange, shouldFetchAll, dataSourceFile)
     output$obsDT <- DT::renderDataTable(
       mainTable$data,
       options = list(paging = T),
@@ -348,8 +349,9 @@ deriveWithTwoVarsNumeric <- function(colDef, columnName, mainTable) {
   }, df = mainTable$data)
 }
 
-barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) {
+barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, plotsForDashboard, dashboardFilePath) {
   #Charts and Graphs
+  source('bar-chart-lib.R', local = TRUE)
   observeEvent(input$inShow, {
     chartOption <- input$inCharts
     if(identical(input$inFactor1, "")){
@@ -368,22 +370,40 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
       showTable(obs, input, output, tableData, selected_cols)
       selectedValue <- "Table"
     } else if (chartOption == 2) {
-      showBarChart(input,output, selected_cols, obs, mainPlot)
+      output$barPlot <- renderPlotly({
+        mainPlot$data <- showBarChart(obs, input$inTimeInterval,input$inProportional, selected_cols)
+        mainPlot$data
+      })
       selectedValue <- "Bar Chart"
     } else if (chartOption == 3) {
-      showHistogram(obs, input, output, mainPlot, selected_cols)
+      output$histPlot <- renderPlotly({  
+        mainPlot$data <- showHistogram(obs, input$inHistInput, selected_cols)
+        mainPlot$data
+      })
       selectedValue <- "Histogram"
     } else if (chartOption == 4) {
-      showScatterPlot(obs, output, selected_cols, mainPlot)
+      output$scatterPlot <- renderPlotly({
+        mainPlot$data <- showScatterPlot(obs, selected_cols)
+        mainPlot$data
+      })
       selectedValue <- "Scatter Plot"
     } else if(chartOption == 5){
-      showMapPlot(input,output,selected_cols,obs)
+      output$mapPlot <- renderLeaflet({
+        mainPlot$data <- showMapPlot(obs, selected_cols)
+        mainPlot$data
+      })
       selectedValue <- "Map Plot"
     } else if(chartOption == 6){
-      showLineChart(input,output,selected_cols,obs, mainPlot)
+      output$lineChart <- renderPlotly({
+        mainPlot$data <- showLineChart(obs,input$inTimeInterval,input$inProportional,input$inFunction,selected_cols)
+        mainPlot$data
+      })
       selectedValue <- "Line Chart"
     } else if(chartOption == 7){
-      showBoxPlot(input,output,selected_cols,obs, mainPlot)
+      output$boxPlot <- renderPlotly({
+        mainPlot$data <- showBoxPlot(obs,input$inTimeInterval,selected_cols)
+        mainPlot$data
+      })
       selectedValue <- "Box Plot"
     }
     updateNavbarPage(session, "inChartMenu", selected = selectedValue)
@@ -393,12 +413,32 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot) 
         downloadButton(ns("downloadTable"), 'Download')
       }else if(chartOption != 5){
         tagList(    
-           actionButton(ns("inFullScreen"), "View Full Screen"),
-           bsModal(ns("plotModal"), "", ns("inFullScreen"), size = "large", plotlyOutput(ns("fullScreenPlot"), height="90vh")),
-           actionButton(ns("inAddtoDB"), "Add to Dashboard")   
-          )
+          actionButton(ns("inFullScreen"), "View Full Screen"),
+          bsModal(ns("plotModal"), "", ns("inFullScreen"), size = "large", plotlyOutput(ns("fullScreenPlot"), height="90vh")),
+          fluidRow(
+            column(6,textInput(ns("inPlotName"), "Unique Title", value="")),
+            column(4,actionButton(ns("inAddtoDB"), "Add to Dashboard")))
+        )
       }
     })
+  })
+
+  observeEvent(input$inAddtoDB, {
+    if(identical(input$inPlotName, "")){
+      showModal(modalDialog("Please Enter a unique title for plot!"))
+      return()
+    }
+    plot <- list()
+    plot$factor1 <- input$inFactor1
+    if(!identical(input$inFactor2, "")){
+      plot$factor2 <- input$inFactor2
+    }
+    plot$timeInterval <- input$inTimeInterval
+    plot$isProportional <- input$inProportional
+
+    plotsForDashboard$data[[input$inPlotName]] <- plot
+    write_lines(toJSON(plotsForDashboard$data), dashboardFilePath)
+    updateTextInput(session, "inPlotName", value = "")
   })
 
   observeEvent(input$inFullScreen, {
@@ -450,200 +490,6 @@ showTable <- function(obs, input, output, tableData, selected_cols){
   output$tableDF <- renderTable(as.matrix(tableop), rownames = T)
 }
 
-showHistogram <- function(obs, input, output, mainPlot, selected_cols){
-  output$histPlot <- renderPlotly({
-    hist_1 <- obs %>% ggplot(aes_string(as.name(selected_cols[1])))
-    if(length(selected_cols) == 2){
-      hist_1 <- obs %>% ggplot(aes_string(as.name(selected_cols[1]), fill = as.name(selected_cols[2])))
-    }
-    plot <-
-      hist_1 +  geom_histogram(binwidth = input$inHistInput)
-    mainPlot$data <- ggplotly(plot)
-    mainPlot$data
-  })
-}
-
-showScatterPlot <- function(obs, output, selected_cols, mainPlot){
-  output$scatterPlot <- renderPlotly({
-    scatter_plot <-
-      obs %>% ggplot(aes_string(
-        x = as.name(selected_cols[1]),
-        y = as.name(selected_cols[2]),
-        col = "Gender"
-      ))
-    plot <- scatter_plot + geom_point()
-    mainPlot$data <- ggplotly(plot)
-    mainPlot$data
-  })
-}
-
-showBoxPlot <- function(input,output,selected_cols,obs, mainPlot){
-  interval <- input$inTimeInterval
-  timeSeriesData <- formatTimeSeries(obs, interval)    
-  obs <- timeSeriesData[[1]]
-  scale_X <- timeSeriesData[[2]]
-  uiText <- timeSeriesData[[3]]
-
-  if(length(selected_cols) == 2){
-    p <- ggplot(obs, aes_string(x=interval, y=as.name(selected_cols[[1]]), fill=as.name(selected_cols[[2]]), text = uiText))
-  }else{
-    p <- ggplot(obs, aes_string(x=interval, y=as.name(selected_cols[[1]]), text = uiText))
-  }
-  p <- p + geom_boxplot() + scale_X
-  output$boxPlot <- renderPlotly({
-    mainPlot$data <- ggplotly(p, tooltip = c("text", "y", "fill")) %>% layout(boxmode = "group")
-    mainPlot$data
-  })
-}
-
-showLineChart <- function(input,output,selected_cols,obs, mapPlot){
-  interval <- input$inTimeInterval
-  timeSeriesData <- formatTimeSeries(obs, interval)
-  obs <- timeSeriesData[[1]]
-  scale_X <- timeSeriesData[[2]]
-  uiText <- timeSeriesData[[3]]
-  
-  chartData <- obs %>% group_by_(.dots = c(lapply(selected_cols,as.name), interval)) %>% summarise(total = n())
-  prapotionalChartData <- chartData %>%
-      group_by_(.dots = c(interval)) %>%
-      mutate(countT= sum(total)) %>%
-      group_by_(.dots = c(lapply(selected_cols,as.name))) %>%
-      mutate(percentage=round(100*total/countT,2))
-
-  output$lineChart <- renderPlotly({
-    if(input$inProportional){
-      chartData <- prapotionalChartData
-      outputVar <- "percentage"
-    }else{
-      outputVar <- "total"
-    }
-    plot <- ggplot(chartData, aes_string(y = outputVar, x = interval, colour = as.name(selected_cols[1]), group = as.name(selected_cols[1]), text = uiText))
-    plot <- plot + geom_line(data = chartData, stat="identity", size = 1.5) + geom_point() 
-    plot <- plot + scale_X
-    if(length(selected_cols) == 2){
-      facetFactor = paste("`",as.name(selected_cols[2]), "`", "~ .", sep = "")
-      plot <- plot + facet_grid(facetFactor)
-    }
-    if(input$inFunction != "none"){
-      plot <- plot + stat_summary(fun.y = input$inFunction, na.rm = TRUE, group = 3, color = 'black', geom ='line')
-    }
-    mapPlot$data <- ggplotly(plot, tooltip = c("text","group", "y"))
-    mapPlot$data
-  })
-}
-
-fetchGeoCode <- function(addresses){
-  lat <- c()
-  lon <- c()
-  localGeoCodes <- fromJSON(file='geocodes.json')
-  for (i in 1:length(addresses)) {
-    localGeoCode <- localGeoCodes[[addresses[i]]]
-    if(is.null(localGeoCode)){
-      print("Fetch From Remote")
-      geocode <- geocode(paste("India", addresses[i]))
-      lat <- c(lat, geocode$lat)
-      lon <- c(lon, geocode$lon)
-      localGeoCodes[[addresses[i]]]$lat <- geocode$lat
-      localGeoCodes[[addresses[i]]]$lon <- geocode$lon
-    }
-    else{
-      lat <- c(lat, localGeoCode$lat)
-      lon <- c(lon, localGeoCode$lon)
-    }
-  }
-  write_lines(toJSON(localGeoCodes),'geocodes.json')
-  data.frame(lat,lon)
-}
-
-showMapPlot <- function(input,output,selected_cols,obs){
-  if(!identical(selected_cols[1], "State") && !identical(selected_cols[1], "District")){
-    showModal(modalDialog(
-      "Map plot can only work with State or District!"
-    ))
-    return()
-  }
-  if(length(selected_cols) > 1){
-    showNotification(
-      "Map Plot works for just one Factor, We will consider Factor 1!",
-      type = "warning",
-      duration = NULL
-    )
-  }
-  chartData <- obs %>% group_by_(.dots = c(as.name(selected_cols[1]))) %>% summarise(total = n())
-  chartData <- subset(chartData, !is.na(chartData[[selected_cols[1]]])) 
-  locs_geo <- fetchGeoCode(chartData[[selected_cols[1]]])
-  chartData <- cbind(chartData, locs_geo)
-  maxRow <- chartData[which.max(chartData$total), ]
-
-  output$mapPlot <- renderLeaflet({
-    leaflet(maxRow, data = chartData) %>%
-    setView(maxRow$lon ,maxRow$lat, zoom = 9) %>%
-    addTiles() %>%
-          addCircleMarkers(~lon, ~lat,
-           popup = ~as.character(chartData[[selected_cols[1]]]),
-           label = ~as.character(total),
-           labelOptions = labelOptions(noHide = T, direction = 'top', textOnly = T),
-             radius = 20
-          )
-    })
-}
-
-showBarChart <- function(input,output,selected_cols,obs, mainPlot){
-  output$barPlot <- renderPlotly({
-    interval <- input$inTimeInterval
-    timeSeriesData <- formatTimeSeries(obs, interval)    
-    obs <- timeSeriesData[[1]]
-    scale_X <- timeSeriesData[[2]]
-    uiText <- timeSeriesData[[3]]
-
-    chartData <- obs %>% group_by_(.dots = c(lapply(selected_cols,as.name), interval)) %>% summarise(total = n())
-    prapotionalChartData <- chartData %>%
-      group_by_(.dots = c(interval)) %>%
-      mutate(countT= sum(total)) %>%
-      group_by_(.dots = c(lapply(selected_cols,as.name))) %>%
-      mutate(percentage=round(100*total/countT,2))
-
-    if(input$inProportional){
-      plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(selected_cols[1]), text = uiText)) +
-        geom_bar(stat="identity", position = "dodge") +
-        scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + scale_X
-    }else{
-      plot <- ggplot(chartData, aes_string(interval, "total", fill = as.name(selected_cols[1]), text = uiText)) +
-        geom_bar(stat="identity", position = "dodge") + scale_X
-    }
-    if(length(selected_cols) == 2){
-      facetFactor = paste("`",as.name(selected_cols[2]), "`", "~ .", sep = "")
-      plot <- plot + facet_grid(facetFactor)
-    }
-    
-    plot <-ggplotly(plot, tooltip = c("text","fill", "y"))
-    for (i in 1:length(plot$x$data)){
-        plot$x$data[[i]]$hovertext <- NULL
-    }
-    mainPlot$data <- plot
-    mainPlot$data
-  })
-}
-
-formatTimeSeries <- function(obs, interval){
-  if(interval == "Years"){
-    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'year')
-    scale_X <- scale_x_datetime(breaks = date_breaks("1 years"), labels = date_format("%Y"))
-    uiText <- paste("format.Date(",interval,", '%Y')")
-  }else if(interval == "Months"){
-    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'month')
-    scale_X <- scale_x_datetime(breaks = date_breaks("1 months"), labels = date_format("%b-%Y"))
-    uiText <- paste("format.Date(",interval,", '%b-%Y')")
-  }else if(interval == "Quarters"){
-    obs[interval] <- floor_date(ymd_hms(obs[["Visit Date"]]), unit = 'quarter')
-    start <- floor_date(min(obs[[interval]]), unit = 'year')
-    end <- ceiling_date(max(obs[[interval]]), unit = 'year')
-    scale_X <- scale_x_datetime(breaks = seq(start, end, by="3 month"), labels = date_format('%b-%Y'))
-    uiText <- paste("format.Date(",interval,", '%b-%Y')")
-  }
-  return (list(obs, scale_X, uiText))
-}
-
 dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath){
   if(file.exists(dashboardFilePath)){
     plotsForDashboard$data <- fromJSON(file=dashboardFilePath) 
@@ -653,15 +499,46 @@ dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboa
       h3("There are no plots added to dashboard")
     })
   }
-  observeEvent(input$apply, {
-    data <- fetchDataForPlugin(input, dataSourceFile)
-    if(nrow(data) <= 0){
-      message <- "There is no data available for selected data range!"
-      showModal(modalDialog(message))
-      return()
-    }
-    output$dashboardPlots <- renderUI({
-      h3("There are no plots added to dashboard")
-    })
-  })
+
+  # observe({
+  #   # bsCollapse(
+  #   #       id = ns("inCollapseAddCols"),
+  #   #       uiForDerivedColumns(id,ns)
+  #   #     ),
+  #   output$dashboardPlots <- renderUI({
+  #     i <- 1
+  #     panels <- lapply(names(plotsForDashboard$data), function(x){
+  #       plot <- plotsForDashboard$data[x]
+  #       bsCollapsePanel(x, tagList(
+  #         fluidRow(
+  #           column(4,dateRangeInput(ns(paste("inDateRange-",i,sep=""))),
+  #           column(4,actionButton(ns(paste("inApply",i,sep="")), "Apply", class="btn-primary"))
+  #         ),
+  #         withSpinner(plotlyOutput(ns(paste("plot",i,sep=""))))
+  #       ))
+  #       observeEvent(input[[paste("inApply", i, sep="")]], {
+  #           dateRange <- as.character(input[[paste("inDateRange-",i,sep=""]])
+  #           data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile)
+
+
+  #       })
+  #       i <<- i + 1
+  #     })
+  #     do.call(bsCollapse, panels)
+  #   })
+  # })
+
+  # observeEvent(input$inApply, {
+  #   shouldFetchAll <- input$inFetchAll
+  #   dateRange <- as.character(input$inDateRange)  
+  #   data <- fetchDataForPlugin(dateRange, shouldFetchAll, dataSourceFile)
+  #   if(nrow(data) <= 0){
+  #     message <- "There is no data available for selected data range!"
+  #     showModal(modalDialog(message))
+  #     return()
+  #   }
+  #   output$dashboardPlots <- renderUI({
+      
+  #   })
+  # })
 }
