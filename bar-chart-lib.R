@@ -170,7 +170,7 @@ showScatterPlot <- function(data, selected_cols){
   ggplotly(plot)
 }
 
-showHistogram <- function(data, binwidth, selected_cols){
+showHistogram <- function(data, binwidth = NULL, selected_cols){
   hist_1 <- data %>% ggplot(aes_string(as.name(selected_cols[1])))
   if(length(selected_cols) == 2){
     hist_1 <- data %>% ggplot(aes_string(as.name(selected_cols[1]), fill = as.name(selected_cols[2])))

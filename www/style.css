@@ -34,4 +34,9 @@ div[id$="-plotModal"] > div {
     width: 90%;
 }
 
+.custom-top-spacing{
+	visibility:hidden;
+	margin-bottom:-5%;
+}
+
 

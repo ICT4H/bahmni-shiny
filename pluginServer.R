@@ -349,6 +349,38 @@ deriveWithTwoVarsNumeric <- function(colDef, columnName, mainTable) {
   }, df = mainTable$data)
 }
 
+renderCustomToolbar <- function(output,session, chartOption){
+  ns <- session$ns
+  output$customToolBar <- renderUI({   
+    if(chartOption == "Table"){
+      downloadButton(ns("downloadTable"), 'Download')
+    }
+    else if(chartOption == "Map Plot"){
+      fluidRow( 
+        column(4,textInput(ns("inPlotName"), "Unique Title", value="")),
+        column(4,
+          tags$div(class = "custom-top-spacing",
+              tags$p("text")
+          ),
+          actionButton(ns("inAddtoDB"), "Add to Dashboard", class = 'btnbottomAlign btn-primary'))
+      ) 
+    }
+    else if(chartOption != "Map Plot"){
+      tagList(    
+        actionButton(ns("inFullScreen"), "View Full Screen", class = 'btnbottomAlign btn-primary'),
+        bsModal(ns("plotModal"), "", ns("inFullScreen"), size = "large", plotlyOutput(ns("fullScreenPlot"), height="90vh")),
+        fluidRow(
+          column(4,textInput(ns("inPlotName"), "Unique Title", value="")),
+          column(4,
+            tags$div(class = "custom-top-spacing",
+              tags$p("text")
+            ),
+            actionButton(ns("inAddtoDB"), "Add to Dashboard", class = 'btnbottomAlign btn-primary')))
+      )
+    }
+  })
+}
+
 barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, plotsForDashboard, dashboardFilePath) {
   #Charts and Graphs
   source('bar-chart-lib.R', local = TRUE)
@@ -366,61 +398,48 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
     }
     
     obs <- mainTable$data
-    if (chartOption == 1) {
-      showTable(obs, input, output, tableData, selected_cols)
-      selectedValue <- "Table"
-    } else if (chartOption == 2) {
+
+    if(chartOption == "Table"){
+      tableop <- ftable(droplevels(obs[selected_cols]))
+      if(input$inProportional){
+        tableop <- prop.table(tableop)
+      }
+      tableData$data <- tableop
+      output$tableDF <- renderTable(as.matrix(tableop), rownames = T)
+    }else if(chartOption == "Bar Chart"){
       output$barPlot <- renderPlotly({
-        mainPlot$data <- showBarChart(obs, input$inTimeInterval,input$inProportional, selected_cols)
+        mainPlot$data <- showBarChart(obs, input$inTimeInterval, input$inProportional, selected_cols)
         mainPlot$data
       })
-      selectedValue <- "Bar Chart"
-    } else if (chartOption == 3) {
+    }else if(chartOption == "Histogram"){
       output$histPlot <- renderPlotly({  
         mainPlot$data <- showHistogram(obs, input$inHistInput, selected_cols)
         mainPlot$data
       })
-      selectedValue <- "Histogram"
-    } else if (chartOption == 4) {
+    }else if(chartOption == "Scatter Plot"){
       output$scatterPlot <- renderPlotly({
         mainPlot$data <- showScatterPlot(obs, selected_cols)
         mainPlot$data
       })
-      selectedValue <- "Scatter Plot"
-    } else if(chartOption == 5){
+    }else if(chartOption == "Map Plot"){
       output$mapPlot <- renderLeaflet({
         mainPlot$data <- showMapPlot(obs, selected_cols)
         mainPlot$data
       })
-      selectedValue <- "Map Plot"
-    } else if(chartOption == 6){
+    }else if(chartOption == "Line Chart"){
       output$lineChart <- renderPlotly({
         mainPlot$data <- showLineChart(obs,input$inTimeInterval,input$inProportional,input$inFunction,selected_cols)
         mainPlot$data
       })
-      selectedValue <- "Line Chart"
-    } else if(chartOption == 7){
+    }else if(chartOption == "Box Plot"){
       output$boxPlot <- renderPlotly({
         mainPlot$data <- showBoxPlot(obs,input$inTimeInterval,selected_cols)
         mainPlot$data
       })
-      selectedValue <- "Box Plot"
     }
-    updateNavbarPage(session, "inChartMenu", selected = selectedValue)
-    ns <- session$ns
-    output$customToolBar <- renderUI({   
-      if(chartOption == 1){
-        downloadButton(ns("downloadTable"), 'Download')
-      }else if(chartOption != 5){
-        tagList(    
-          actionButton(ns("inFullScreen"), "View Full Screen"),
-          bsModal(ns("plotModal"), "", ns("inFullScreen"), size = "large", plotlyOutput(ns("fullScreenPlot"), height="90vh")),
-          fluidRow(
-            column(6,textInput(ns("inPlotName"), "Unique Title", value="")),
-            column(4,actionButton(ns("inAddtoDB"), "Add to Dashboard")))
-        )
-      }
-    })
+    print(chartOption)
+    renderCustomToolbar(output, session, chartOption)
+    updateNavbarPage(session, "inChartMenu", selected = chartOption)
   })
 
   observeEvent(input$inAddtoDB, {
@@ -435,6 +454,7 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
     }
     plot$timeInterval <- input$inTimeInterval
     plot$isProportional <- input$inProportional
+    plot$type <- input$inCharts
 
     plotsForDashboard$data[[input$inPlotName]] <- plot
     write_lines(toJSON(plotsForDashboard$data), dashboardFilePath)
@@ -442,7 +462,9 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
   })
 
   observeEvent(input$inFullScreen, {
-    if(input$inCharts != 1){
+    if(input$inCharts != "Map Plot"){
+      # output$fullScreenPlot <- renderLeaflet({mainPlot$data})  
+    # }else{
       output$fullScreenPlot <- renderPlotly({mainPlot$data})  
     }
   })
@@ -473,7 +495,7 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
     },
     content = function(file) {
       chartOption <- input$inCharts
-      if (chartOption == 1) {
+      if (chartOption == "Table") {
         op_df <- as.matrix(tableData$data)
         write.csv(op_df, file)
       }
@@ -481,13 +503,60 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
   )
 }
 
-showTable <- function(obs, input, output, tableData, selected_cols){
-  tableop <- ftable(droplevels(obs[selected_cols]))
-  if(input$inProportional){
-    tableop <- prop.table(tableop)
+panelForDashboardPlot <- function(title,plot,ns,dateRangeInputID, applyButtonID, plotID){
+  bsCollapsePanel(title, 
+    tagList(
+      fluidRow(
+        column(4, 
+          dateRangeInput(ns(dateRangeInputID),
+            label = 'Range',
+            start = Sys.Date() - 365,
+            end = Sys.Date()
+          )
+        ),
+        column(4,actionButton(ns(applyButtonID), "Apply", class = 'btnbottomAlign btn-primary'))
+      )
+    ),
+    if(plot$type == "Map Plot"){
+      fluidRow(leafletOutput(ns(plotID)))
+    }else{
+      fluidRow(plotlyOutput(ns(plotID)))
+    }
+  )
+}
+
+renderPlot <- function(data, plot,chartOption){
+  selected_cols = c(plot$factor1, plot$factor2)
+  if(chartOption == "Bar Chart"){
+      showBarChart(data, plot$timeInterval, plot$isProportional, selected_cols)
+  }else if(chartOption == "Histogram"){
+    showHistogram(data, selected_cols)
+  }else if(chartOption == "Scatter Plot"){
+    showScatterPlot(data, selected_cols)
+  }else if(chartOption == "Map Plot"){
+    showMapPlot(data, selected_cols)
+  }else if(chartOption == "Line Chart"){
+    showLineChart(data,plot$timeInterval,plot$isProportional,"none",selected_cols)
+  }else if(chartOption == "Box Plot"){
+    showBoxPlot(data,plot$timeInterval,selected_cols)
   }
-  tableData$data <- tableop
-  output$tableDF <- renderTable(as.matrix(tableop), rownames = T)
+}
+
+observerForDashboardPlots <- function(input, output,plot,dataSourceFile, applyButtonID, dateRangeInputID, plotID){
+  observeEvent(input[[applyButtonID]], {
+    dateRange <- as.character(input[[dateRangeInputID]])
+    data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile)
+    if(plot$type == "Map Plot"){
+      output[[plotID]] <- renderLeaflet({
+        renderPlot(data, plot, plot$type)
+      })
+    }else {
+      output[[plotID]] <- renderPlotly({
+        plotToShow <- renderPlot(data, plot, plot$type)
+        plotToShow %>% layout(height = 600, width = 960)
+      })
+    }
+  })
 }
 
 dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath){
@@ -504,38 +573,14 @@ dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboa
     ns <- session$ns
     output$dashboardPlots <- renderUI({
       i <- 1
-      panels <- lapply(names(plotsForDashboard$data), function(x){
+      panels <- lapply(names(plotsForDashboard$data), function(name){
         dateRangeInputID <- paste("inDateRange-",i,sep="")
         applyButtonID <- paste("inApply-",i,sep="")
         plotID <- paste("plot-",i,sep="")
 
-        plot <- plotsForDashboard$data[[x]]
-        panel <- bsCollapsePanel(x, tagList(
-            fluidRow(
-              column(4, 
-                dateRangeInput(ns(dateRangeInputID),
-                  label = 'Range',
-                  start = Sys.Date() - 365,
-                  end = Sys.Date()
-                )
-              ),
-              column(4,actionButton(ns(applyButtonID), "Apply", class="btn-primary"))
-            )
-          ),
-          fluidRow(plotlyOutput(ns(plotID)))
-        )
-        observeEvent(input[[applyButtonID]], {
-          dateRange <- as.character(input[[dateRangeInputID]])
-          data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile)
-          output[[plotID]] <- renderPlotly({
-            plotToShow <- showBarChart(data,
-              plot[["timeInterval"]],
-              plot[["isProportional"]],
-              c(plot[["factor1"]], plot[["factor2"]])
-            )
-            plotToShow %>% layout(height = 600, width = 960)
-          })
-        })
+        plot <- plotsForDashboard$data[[name]]
+        panel <- panelForDashboardPlot(name,plot,ns,dateRangeInputID,applyButtonID, plotID)
+        observerForDashboardPlots(input, output,plot, dataSourceFile, applyButtonID, dateRangeInputID, plotID)
         i <<- i + 1
         panel
       })
