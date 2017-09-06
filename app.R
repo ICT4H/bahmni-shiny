@@ -31,11 +31,10 @@ pkgs_to_load <-
   )
 lapply(pkgs_to_load, library, character.only = TRUE)
 
-options(shiny.trace = F)
-
 source("connector.R")
 source("pluginServer.R")
 source("pluginUI.R")
+source('bar-chart-lib.R')
 
 ui <- fluidPage(
   tags$link(rel="stylesheet", type="text/css",href="style.css"),

@@ -237,7 +237,6 @@ uiForFetchData <- function(id, ns){
 dashboardTabUI <- function(id){
   ns <- NS(id)
   tagList(
-    uiForFetchData(id, ns),
     uiOutput(ns("dashboardPlots"))
   )
 }

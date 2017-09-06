@@ -1,4 +1,6 @@
 plugin <- function(input, output, session, dataSourceFile, pluginName, preferencesFolderPath){
+  source('dashboardTabServer.R', local = TRUE)
+
   mainTable <- reactiveValues(data = NULL)
   mainPlot <- reactiveValues(data = NULL)
   tableData <- reactiveValues(data = NULL)
@@ -383,7 +385,6 @@ renderCustomToolbar <- function(output,session, chartOption){
 
 barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, plotsForDashboard, dashboardFilePath) {
   #Charts and Graphs
-  source('bar-chart-lib.R', local = TRUE)
   observeEvent(input$inShow, {
     chartOption <- input$inCharts
     if(identical(input$inFactor1, "")){
@@ -437,7 +438,6 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
         mainPlot$data
       })
     }
-    print(chartOption)
     renderCustomToolbar(output, session, chartOption)
     updateNavbarPage(session, "inChartMenu", selected = chartOption)
   })
@@ -463,8 +463,6 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
 
   observeEvent(input$inFullScreen, {
     if(input$inCharts != "Map Plot"){
-      # output$fullScreenPlot <- renderLeaflet({mainPlot$data})  
-    # }else{
       output$fullScreenPlot <- renderPlotly({mainPlot$data})  
     }
   })
@@ -501,104 +499,4 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
       }
     }
   )
-}
-
-panelForDashboardPlot <- function(title,plot,ns,dateRangeInputID, applyButtonID, plotID){
-  bsCollapsePanel(title, 
-    tagList(
-      fluidRow(
-        column(4, 
-          dateRangeInput(ns(dateRangeInputID),
-            label = 'Range',
-            start = Sys.Date() - 365,
-            end = Sys.Date()
-          )
-        ),
-        column(4,actionButton(ns(applyButtonID), "Apply", class = 'btnbottomAlign btn-primary'))
-      )
-    ),
-    if(plot$type == "Map Plot"){
-      fluidRow(leafletOutput(ns(plotID)))
-    }else{
-      fluidRow(plotlyOutput(ns(plotID)))
-    }
-  )
-}
-
-renderPlot <- function(data, plot,chartOption){
-  selected_cols = c(plot$factor1, plot$factor2)
-  if(chartOption == "Bar Chart"){
-      showBarChart(data, plot$timeInterval, plot$isProportional, selected_cols)
-  }else if(chartOption == "Histogram"){
-    showHistogram(data, selected_cols)
-  }else if(chartOption == "Scatter Plot"){
-    showScatterPlot(data, selected_cols)
-  }else if(chartOption == "Map Plot"){
-    showMapPlot(data, selected_cols)
-  }else if(chartOption == "Line Chart"){
-    showLineChart(data,plot$timeInterval,plot$isProportional,"none",selected_cols)
-  }else if(chartOption == "Box Plot"){
-    showBoxPlot(data,plot$timeInterval,selected_cols)
-  }
-}
-
-observerForDashboardPlots <- function(input, output,plot,dataSourceFile, applyButtonID, dateRangeInputID, plotID){
-  observeEvent(input[[applyButtonID]], {
-    dateRange <- as.character(input[[dateRangeInputID]])
-    data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile)
-    if(plot$type == "Map Plot"){
-      output[[plotID]] <- renderLeaflet({
-        renderPlot(data, plot, plot$type)
-      })
-    }else {
-      output[[plotID]] <- renderPlotly({
-        plotToShow <- renderPlot(data, plot, plot$type)
-        plotToShow %>% layout(height = 600, width = 960)
-      })
-    }
-  })
-}
-
-dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath){
-  if(file.exists(dashboardFilePath)){
-    plotsForDashboard$data <- fromJSON(file=dashboardFilePath) 
-  }else{
-    plotsForDashboard$data <- list()
-    output$dashboardPlots <- renderUI({
-      h3("There are no plots added to dashboard")
-    })
-  }
-
-  observe({
-    ns <- session$ns
-    output$dashboardPlots <- renderUI({
-      i <- 1
-      panels <- lapply(names(plotsForDashboard$data), function(name){
-        dateRangeInputID <- paste("inDateRange-",i,sep="")
-        applyButtonID <- paste("inApply-",i,sep="")
-        plotID <- paste("plot-",i,sep="")
-
-        plot <- plotsForDashboard$data[[name]]
-        panel <- panelForDashboardPlot(name,plot,ns,dateRangeInputID,applyButtonID, plotID)
-        observerForDashboardPlots(input, output,plot, dataSourceFile, applyButtonID, dateRangeInputID, plotID)
-        i <<- i + 1
-        panel
-      })
-      do.call(bsCollapse, panels)
-    })
-  })
-
-  observeEvent(input$inApply, {
-    shouldFetchAll <- input$inFetchAll
-    dateRange <- as.character(input$inDateRange)  
-    data <- fetchDataForPlugin(dateRange, shouldFetchAll, dataSourceFile)
-    if(nrow(data) <= 0){
-      message <- "There is no data available for selected data range!"
-      showModal(modalDialog(message))
-      return()
-    }
-    output$dashboardPlots <- renderUI({
-      
-    })
-  })
 }
