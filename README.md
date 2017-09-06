@@ -10,7 +10,7 @@ sudo yum install epel-release
 sudo yum install R
 wget https://download3.rstudio.org/centos5.9/x86_64/shiny-server-1.5.3.838-rh5-x86_64.rpm
 sudo yum install --nogpgcheck shiny-server-1.5.3.838-rh5-x86_64.rpm
-sudo yum -y install libcurl libcurl-devel openssl-devel mysql-devel libjpeg-turbo-devel libpng-devel postgresql-devel
+sudo yum -y install libcurl libcurl-devel openssl-devel mysql-devel libjpeg-turbo-devel libpng-devel postgresql-devel nlopt nlopt-devel
 
 cd /srv/shiny-server/
 #remove all sample apps
