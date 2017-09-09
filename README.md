@@ -35,5 +35,6 @@ sudo R -f install_packages.R
 	- sqlite3 shiny.sqlite
 	- create table users(username varchar primary key, password varchar);
 	- insert into users values('demo','$2a$12$aZyMtR.kaSqrpK2h/ID43utwz8bS6g.aovQW9z0/kvhlcnwYPfsfe');
+	The above hash is the result of bcrypt::hashpw('12345') in R. Where 12345 is the password
 
 
