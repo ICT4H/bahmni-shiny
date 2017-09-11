@@ -1,4 +1,4 @@
-dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath){
+dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath, geocodesFilePath){
   #todo:- Defining this counter to avoid conflict of element observers.
   counter <- 1
   dashboardTabData <- reactiveValues(data = NULL)
@@ -76,7 +76,7 @@ renderPlot <- function(data, plot){
   }else if(chartOption == "Scatter Plot"){
     showScatterPlot(data, selected_cols)
   }else if(chartOption == "Map Plot"){
-    showMapPlot(data, selected_cols)
+    showMapPlot(data, selected_cols, geocodesFilePath)
   }else if(chartOption == "Line Chart"){
     showLineChart(data,plot$timeInterval,plot$isProportional,"none",selected_cols)
   }else if(chartOption == "Box Plot"){

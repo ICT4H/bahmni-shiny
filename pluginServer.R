@@ -8,9 +8,11 @@ plugin <- function(input, output, session, dataSourceFile, pluginName, preferenc
   
   colDefFilePath = paste(preferencesFolderPath,"/",pluginName,"-columns.json",sep="")
   dashboardFilePath = paste(preferencesFolderPath,"/",pluginName,"-dashboard.json",sep="")
+  geocodesFilePath = paste(preferencesFolderPath,"/","geocodes.json", sep="")
+
   callModule(pluginSearchTab, "search", mainTable, dataSourceFile, colDefFilePath)
-  callModule(barChartTab, "barChart", mainTable, tableData, mainPlot, plotsForDashboard, dashboardFilePath)
-  callModule(dashboardTab, "dashboard", dataSourceFile, plotsForDashboard, dashboardFilePath)
+  callModule(barChartTab, "barChart", mainTable, tableData, mainPlot, plotsForDashboard, dashboardFilePath, geocodesFilePath)
+  callModule(dashboardTab, "dashboard", dataSourceFile, plotsForDashboard, dashboardFilePath, geocodesFilePath)
 
   observeEvent(input$inTabPanel, {
     if (input$inTabPanel == "Bar and Charts") {
@@ -383,7 +385,7 @@ renderCustomToolbar <- function(output,session, chartOption){
   })
 }
 
-barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, plotsForDashboard, dashboardFilePath) {
+barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, plotsForDashboard, dashboardFilePath, geocodesFilePath) {
   #Charts and Graphs
   observeEvent(input$inShow, {
     chartOption <- input$inCharts
@@ -424,7 +426,7 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
       })
     }else if(chartOption == "Map Plot"){
       output$mapPlot <- renderLeaflet({
-        mainPlot$data <- showMapPlot(obs, selected_cols)
+        mainPlot$data <- showMapPlot(obs, selected_cols, geocodesFilePath)
         mainPlot$data
       })
     }else if(chartOption == "Line Chart"){

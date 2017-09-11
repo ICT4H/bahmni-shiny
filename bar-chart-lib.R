@@ -53,14 +53,18 @@ showBarChart <- function(data,interval, isProportional, selected_cols){
   plot
 }
 
-fetchGeoCode <- function(addresses){
+fetchGeoCode <- function(addresses, geocodesFilePath){
   lat <- c()
   lon <- c()
-  localGeoCodes <- fromJSON(file='geocodes.json')
+  if(file.exists(geocodesFilePath)){
+    localGeoCodes <- fromJSON(file=geocodesFilePath) 
+  }else{
+    localGeoCodes <- list()
+  }
   for (i in 1:length(addresses)) {
     localGeoCode <- localGeoCodes[[addresses[i]]]
     if(is.null(localGeoCode)){
-      print("Fetch From Remote")
+      print(paste("Fetch From Remote for", addresses[i]))
       geocode <- geocode(paste("India", addresses[i]))
       lat <- c(lat, geocode$lat)
       lon <- c(lon, geocode$lon)
@@ -72,11 +76,11 @@ fetchGeoCode <- function(addresses){
       lon <- c(lon, localGeoCode$lon)
     }
   }
-  write_lines(toJSON(localGeoCodes),'geocodes.json')
+  write_lines(toJSON(localGeoCodes),geocodesFilePath)
   data.frame(lat,lon)
 }
 
-showMapPlot <- function(data, selected_cols){
+showMapPlot <- function(data, selected_cols, geocodesFilePath){
   if(!identical(selected_cols[1], "State") && !identical(selected_cols[1], "District")){
     showModal(modalDialog(
       "Map plot can only work with State or District!"
@@ -95,10 +99,10 @@ showMapPlot <- function(data, selected_cols){
    summarise(total = n())
 
   chartData <- subset(chartData, !is.na(chartData[[selected_cols[1]]])) 
-  locs_geo <- fetchGeoCode(chartData[[selected_cols[1]]])
+  locs_geo <- fetchGeoCode(chartData[[selected_cols[1]]], geocodesFilePath)
   chartData <- cbind(chartData, locs_geo)
   maxRow <- chartData[which.max(chartData$total), ]
-
+  write.csv(chartData,file="sample.csv")
   leaflet(maxRow, data = chartData) %>%
     setView(maxRow$lon ,maxRow$lat, zoom = 9) %>%
     addTiles() %>%
