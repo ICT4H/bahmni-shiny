@@ -63,6 +63,8 @@ To get new features added in the bahmni-shiny app, you will need to upgrade the 
         mv bahmni-shiny-master/ bahmni-shiny
         chown shiny:shiny -R bahmni-shiny/
         rm -f master.zip
+        cd bahmni-shiny
+        R -f install_packages.R
         exit
     --commit updated container as base image
     docker commit shiny-app shiny-local

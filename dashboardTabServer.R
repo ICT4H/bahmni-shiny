@@ -1,5 +1,6 @@
 dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath){
-  observers <- list()
+  #todo:- Defining this counter to avoid conflict of element observers.
+  counter <- 1
   dashboardTabData <- reactiveValues(data = NULL)
   if(file.exists(dashboardFilePath)){
     plotsForDashboard$data <- fromJSON(file=dashboardFilePath) 
@@ -17,19 +18,17 @@ dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboa
         })
         return ()
       }
-      i <- 1
       panels <- lapply(dashboardCharts, function(name){
-        dateRangeInputID <- paste("inDateRange-",i,sep="")
-        applyButtonID <- paste("inApply-",i,sep="")
-        plotID <- paste("plot-",i,sep="")
+        dateRangeInputID <- paste("inDateRange-",counter,sep="")
+        applyButtonID <- paste("inApply-",counter,sep="")
+        removeButtonId <- paste("inRemoveFromDB-",counter,sep="")
+        plotID <- paste("plot-",counter,sep="")
 
         plot <- plotsForDashboard$data[[name]]
-        panel <- panelForDashboardPlot(name,plot,ns,dateRangeInputID,applyButtonID, plotID)
-        if(is.null(observers[[applyButtonID]])){
-          observer <- observerForDashboardPlots(input, output,plot, dataSourceFile, applyButtonID, dateRangeInputID, plotID)
-          observers[[applyButtonID]] <<- observer
-        }
-        i <<- i + 1
+        panel <- panelForDashboardPlot(name,plot,ns,dateRangeInputID,applyButtonID, plotID, removeButtonId)
+        observerForRemoveFromDashboard(input, plotID, removeButtonId, plotsForDashboard, dashboardFilePath)
+        observerForDashboardFetchData(input, output,plot, dataSourceFile, applyButtonID, dateRangeInputID, plotID)
+        counter <<- counter + 1
         panel
       })
       do.call(bsCollapse, panels)
@@ -37,7 +36,7 @@ dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboa
   })
 }
 
-panelForDashboardPlot <- function(title,plot,ns,dateRangeInputID, applyButtonID, plotID){
+panelForDashboardPlot <- function(title,plot,ns,dateRangeInputID, applyButtonID, plotID, removeButtonId){
   bsCollapsePanel(title, 
     tagList(
       fluidRow(
@@ -53,13 +52,17 @@ panelForDashboardPlot <- function(title,plot,ns,dateRangeInputID, applyButtonID,
               tags$p("text")
           ),
           actionButton(ns(applyButtonID), "Apply", class = 'btnbottomAlign btn-primary'))
-      )
+      ) 
     ),
-    if(plot$type == "Map Plot"){
+    (if(plot$type == "Map Plot"){
       fluidRow(leafletOutput(ns(plotID)))
     }else{
       fluidRow(plotlyOutput(ns(plotID)))
-    }
+    }),
+    fluidRow(
+      div(class = "hidden-input", textInput(ns(paste("plot-", plotID, sep="")), value = title, label = "Plot Name")),
+      actionButton(ns(removeButtonId), "Remove From Dashboard", class = 'btnbottomAlign btn-primary')
+    ) 
   )
 }
 
@@ -81,7 +84,7 @@ renderPlot <- function(data, plot){
   }
 }
 
-observerForDashboardPlots <- function(input, output,plot,dataSourceFile, applyButtonID, dateRangeInputID, plotID){
+observerForDashboardFetchData <- function(input, output,plot,dataSourceFile, applyButtonID, dateRangeInputID, plotID){
   observeEvent(input[[applyButtonID]], {
     dateRange <- as.character(input[[dateRangeInputID]])
     data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile)
@@ -95,5 +98,18 @@ observerForDashboardPlots <- function(input, output,plot,dataSourceFile, applyBu
         plotToShow
       })
     }
+  })
+}
+
+observerForRemoveFromDashboard <- function(input, plotID, removeButtonId, plotsForDashboard, dashboardFilePath){
+  observeEvent(input[[removeButtonId]], {
+    textBoxId <- paste("plot-", plotID, sep="")
+    plotName <- input[[textBoxId]]
+    plotsForDashboard$data[[plotName]] <- NULL
+    write_lines(toJSON(plotsForDashboard$data), dashboardFilePath)
+    showNotification(
+      paste(plotName, "is removed from dashboard."),
+      type = "message"
+    )
   })
 }

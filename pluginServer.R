@@ -459,6 +459,10 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
     plotsForDashboard$data[[input$inPlotName]] <- plot
     write_lines(toJSON(plotsForDashboard$data), dashboardFilePath)
     updateTextInput(session, "inPlotName", value = "")
+    showNotification(
+      paste(input$inPlotName, " is added to dashboard."),
+      type = "message"
+    )
   })
 
   observeEvent(input$inFullScreen, {
