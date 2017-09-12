@@ -15,24 +15,24 @@ pluginSearchTabUI <- function(id) {
   ns <- NS(id)
   tagList(
     uiForFetchData(id, ns),
-    conditionalPanel(condition = "1==0",
-                     checkboxInput(
-                       ns("incheckbox"), label = "Choice A", value = F
-                     )),
+    conditionalPanel(
+      condition = "1==0",
+      ns = ns,
+      checkboxInput(
+        ns("incheckbox"), label = "Choice A", value = F
+      )
+    ),
     p(""),
     conditionalPanel(
-      condition = paste("input[['", id, "-incheckbox']]==1", sep = ""),
-      p(""),
-      conditionalPanel(
-        condition = paste("input[['", id, "-incheckbox']]==1", sep = "") ,
-        bsCollapse(
-          id = ns("inCollapseAddCols"),
-          uiForDerivedColumns(id,ns)
-        ),
-        DT::dataTableOutput(ns("obsDT"))
-        ,
-        downloadButton(ns("downloadData"), 'Download', class="btn-primary")
-      )  
+      condition = "input.incheckbox",
+      ns = ns,
+      bsCollapse(
+        id = ns("inCollapseAddCols"),
+        uiForDerivedColumns(id,ns)
+      ),
+      DT::dataTableOutput(ns("obsDT"))
+      ,
+      downloadButton(ns("downloadData"), 'Download', class="btn-primary")
     )
   )
 }
@@ -99,7 +99,8 @@ uiForNumericVariables <- function(id, ns){
              numericInput(ns("inEndRange"), "End", value = ""))
     ),
     conditionalPanel(
-        condition = paste("input[['", id, "-inTwoVariables']]==1", sep = ""),
+        condition = "input.inTwoVariables",
+        ns = ns,
         fluidRow(
           column(4,
              selectizeInput(
@@ -168,8 +169,12 @@ uiForPlots <- function(id, ns){
       id = ns("inChartMenu"),
       navbarMenu(
         "Output",
-        conditionalPanel(condition="F",tabPanel("None",
-                 uiOutput(""))),
+        conditionalPanel(
+          condition="1==0",
+          ns = ns,
+          tabPanel("None",
+                 uiOutput(""))
+        ),
         tabPanel("Table",
                  withSpinner(tableOutput(ns("tableDF")))
                  ),
@@ -224,7 +229,8 @@ uiForFetchData <- function(id, ns){
     p(""),
     checkboxInput(ns("inFetchAll"), label="Fetch All Data", value = F),
     conditionalPanel(
-      condition = paste("input[['", id, "-inFetchAll']]==0", sep = ""),
+      condition = "input.inFetchAll==0",
+      ns = ns,
       dateRangeInput(ns("inDateRange"),
       label = 'Range',
       start = Sys.Date() - 365,
