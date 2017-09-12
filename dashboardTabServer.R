@@ -1,4 +1,4 @@
-dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath, geocodesFilePath){
+dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath, geocodesFilePath, existingColumnDefs){
   #todo:- Defining this counter to avoid conflict of element observers.
   counter <- 1
   dashboardTabData <- reactiveValues(data = NULL)
@@ -27,7 +27,7 @@ dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboa
         plot <- plotsForDashboard$data[[name]]
         panel <- panelForDashboardPlot(name,plot,ns,dateRangeInputID,applyButtonID, plotID, removeButtonId)
         observerForRemoveFromDashboard(input, plotID, removeButtonId, plotsForDashboard, dashboardFilePath)
-        observerForDashboardFetchData(input, output,plot, dataSourceFile, applyButtonID, dateRangeInputID, plotID)
+        observerForDashboardFetchData(input, output,plot, dataSourceFile, applyButtonID, dateRangeInputID, plotID, existingColumnDefs)
         counter <<- counter + 1
         panel
       })
@@ -66,7 +66,14 @@ panelForDashboardPlot <- function(title,plot,ns,dateRangeInputID, applyButtonID,
   )
 }
 
-renderPlot <- function(data, plot){
+renderPlot <- function(data, plot, existingColumnDefs){
+  derivedColumnNames <- names(existingColumnDefs$data)
+  if(plot$factor1 %in% derivedColumnNames){
+    data <- addDerivedColumn(existingColumnDefs, plot$factor1, data)
+  }
+  if(!is.null(plot$factor2) && (plot$factor2 %in% derivedColumnNames)){
+    data <- addDerivedColumn(existingColumnDefs, plot$factor2, data)
+  }
   chartOption <- plot$type
   selected_cols <- c(plot$factor1, plot$factor2)
   if(chartOption == "Bar Chart"){
@@ -84,17 +91,17 @@ renderPlot <- function(data, plot){
   }
 }
 
-observerForDashboardFetchData <- function(input, output,plot,dataSourceFile, applyButtonID, dateRangeInputID, plotID){
+observerForDashboardFetchData <- function(input, output,plot,dataSourceFile, applyButtonID, dateRangeInputID, plotID, existingColumnDefs){
   observeEvent(input[[applyButtonID]], {
     dateRange <- as.character(input[[dateRangeInputID]])
     data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile)
     if(plot$type == "Map Plot"){
       output[[plotID]] <- renderLeaflet({
-        renderPlot(data, plot)
+        renderPlot(data, plot, existingColumnDefs)
       })
     }else {
       output[[plotID]] <- renderPlotly({
-        plotToShow <- renderPlot(data, plot)
+        plotToShow <- renderPlot(data, plot, existingColumnDefs)
         plotToShow
       })
     }

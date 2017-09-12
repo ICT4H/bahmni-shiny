@@ -66,10 +66,16 @@ fetchGeoCode <- function(addresses, geocodesFilePath){
     if(is.null(localGeoCode)){
       print(paste("Fetch From Remote for", addresses[i]))
       geocode <- geocode(paste("India", addresses[i]))
-      lat <- c(lat, geocode$lat)
-      lon <- c(lon, geocode$lon)
-      localGeoCodes[[addresses[i]]]$lat <- geocode$lat
-      localGeoCodes[[addresses[i]]]$lon <- geocode$lon
+      if(is.na(geocode$lat) || is.na(geocode$lon)){
+        showModal(modalDialog(paste("Problem while fetching data for!", addresses[i])))
+        return()
+      }else{
+        lat <- c(lat, geocode$lat)
+        lon <- c(lon, geocode$lon)
+        localGeoCodes[[addresses[i]]]$lat <- geocode$lat
+        localGeoCodes[[addresses[i]]]$lon <- geocode$lon  
+      }
+      
     }
     else{
       lat <- c(lat, localGeoCode$lat)
@@ -102,7 +108,6 @@ showMapPlot <- function(data, selected_cols, geocodesFilePath){
   locs_geo <- fetchGeoCode(chartData[[selected_cols[1]]], geocodesFilePath)
   chartData <- cbind(chartData, locs_geo)
   maxRow <- chartData[which.max(chartData$total), ]
-  write.csv(chartData,file="sample.csv")
   leaflet(maxRow, data = chartData) %>%
     setView(maxRow$lon ,maxRow$lat, zoom = 9) %>%
     addTiles() %>%

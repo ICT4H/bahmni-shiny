@@ -10,9 +10,16 @@ plugin <- function(input, output, session, dataSourceFile, pluginName, preferenc
   dashboardFilePath = paste(preferencesFolderPath,"/",pluginName,"-dashboard.json",sep="")
   geocodesFilePath = paste(preferencesFolderPath,"/","geocodes.json", sep="")
 
-  callModule(pluginSearchTab, "search", mainTable, dataSourceFile, colDefFilePath)
+  existingColumnDefs <- reactiveValues(data = NULL)
+  if(file.exists(colDefFilePath)){
+    existingColumnDefs$data <- fromJSON(file=colDefFilePath) 
+  }else{
+    existingColumnDefs$data <- list()
+  }
+
+  callModule(pluginSearchTab, "search", mainTable, dataSourceFile, colDefFilePath, existingColumnDefs)
   callModule(barChartTab, "barChart", mainTable, tableData, mainPlot, plotsForDashboard, dashboardFilePath, geocodesFilePath)
-  callModule(dashboardTab, "dashboard", dataSourceFile, plotsForDashboard, dashboardFilePath, geocodesFilePath)
+  callModule(dashboardTab, "dashboard", dataSourceFile, plotsForDashboard, dashboardFilePath, geocodesFilePath, existingColumnDefs)
 
   observeEvent(input$inTabPanel, {
     if (input$inTabPanel == "Bar and Charts") {
@@ -49,14 +56,7 @@ fetchDataForPlugin <- function(dateRange, shouldFetchAll, dataSourceFile){
   data
 }
 
-pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, colDefFilePath) {
-  existingColumnDefs <- reactiveValues(data = NULL)
-  if(file.exists(colDefFilePath)){
-    existingColumnDefs$data <- fromJSON(file=colDefFilePath) 
-  }else{
-    existingColumnDefs$data <- list()
-  }
-
+pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, colDefFilePath, existingColumnDefs) {
   observe({
     updateSelectInput(session,
       "inColumnDefs",
@@ -292,26 +292,9 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, c
       showModal(modalDialog("Please Select a columnName!"))
       return()
     }
-    colDef <- existingColumnDefs$data[[columnName]]
-    datatype <- colDef$datatype
-    usingTwoVars <- colDef$usingTwoVars
-    if(usingTwoVars){
-      df_list <- deriveWithTwoVarsNumeric(colDef,columnName, mainTable)
-    }else{
-      df_list <- deriveWithOneVarNumeric(colDef, columnName, mainTable)
-    }      
-    df_list <- df_list %>% map(function(x) {
-      filter_criteria <-
-        lazyeval::interp( ~ !is.na(a), a = as.name(columnName))
-      x %>% filter_(.dots = filter_criteria)
-    })
-    mainTable$data <- bind_rows(df_list)
     
-    mutate_call <-
-      lazyeval::interp( ~ as.factor(a) , a = as.name(columnName))
-    mainTable$data <-
-      mainTable$data %>% mutate_(.dots = setNames(list(mutate_call), columnName))
-    
+    mainTable$data <- addDerivedColumn(existingColumnDefs, columnName, mainTable$data)
+
     output$obsDT <- DT::renderDataTable(
       mainTable$data,
       options = list(paging = T),
@@ -326,7 +309,30 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, c
   })
 }
 
-deriveWithOneVarNumeric <- function(colDef, columnName, mainTable) {
+addDerivedColumn <- function(existingColumnDefs, columnName, data){
+  colDef <- existingColumnDefs$data[[columnName]]
+  datatype <- colDef$datatype
+  usingTwoVars <- colDef$usingTwoVars
+  if(usingTwoVars){
+    df_list <- deriveWithTwoVarsNumeric(colDef,columnName, data)
+  }else{
+    df_list <- deriveWithOneVarNumeric(colDef, columnName, data)
+  }      
+  df_list <- df_list %>% map(function(x) {
+    filter_criteria <-
+      lazyeval::interp( ~ !is.na(a), a = as.name(columnName))
+    x %>% filter_(.dots = filter_criteria)
+  })
+  data <- bind_rows(df_list)
+  
+  mutate_call <-
+    lazyeval::interp( ~ as.factor(a) , a = as.name(columnName))
+  data <-
+    data %>% mutate_(.dots = setNames(list(mutate_call), columnName))
+  data
+}
+
+deriveWithOneVarNumeric <- function(colDef, columnName, data) {
   firstColName <- colDef$firstColName
   ranges <- colDef$categories %>% map("Range")
   categoryNames <- colDef$categories %>% map_chr("Name")
@@ -336,10 +342,10 @@ deriveWithOneVarNumeric <- function(colDef, columnName, mainTable) {
                         a = as.name(firstColName))
     df <-
       df %>% mutate_(.dots = setNames(list(mutate_call_ip), columnName))
-  }, df = mainTable$data)
+  }, df = data)
 }
 
-deriveWithTwoVarsNumeric <- function(colDef, columnName, mainTable) {
+deriveWithTwoVarsNumeric <- function(colDef, columnName, data) {
   firstColName <- colDef$firstColName
   secondColName <- colDef$secondColName
   ranges <- colDef$categories %>% map("Range")
@@ -350,7 +356,7 @@ deriveWithTwoVarsNumeric <- function(colDef, columnName, mainTable) {
                         a = as.name(firstColName), b = as.name(secondColName))
     df <-
       df %>% mutate_(.dots = setNames(list(mutate_call_ip), columnName))
-  }, df = mainTable$data)
+  }, df = data)
 }
 
 renderCustomToolbar <- function(output,session, chartOption){
