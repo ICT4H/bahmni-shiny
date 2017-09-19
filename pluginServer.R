@@ -1,4 +1,4 @@
-plugin <- function(input, output, session, dataSourceFile, pluginName, preferencesFolderPath){
+plugin <- function(input, output, session, dataSourceFile, pluginName, preferencesFolderPath, usePostgres){
   source('dashboardTabServer.R', local = TRUE)
 
   mainTable <- reactiveValues(data = NULL)
@@ -17,9 +17,9 @@ plugin <- function(input, output, session, dataSourceFile, pluginName, preferenc
     existingColumnDefs$data <- list()
   }
 
-  callModule(pluginSearchTab, "search", mainTable, dataSourceFile, colDefFilePath, existingColumnDefs)
+  callModule(pluginSearchTab, "search", mainTable, dataSourceFile, colDefFilePath, existingColumnDefs, usePostgres)
   callModule(barChartTab, "barChart", mainTable, tableData, mainPlot, plotsForDashboard, dashboardFilePath, geocodesFilePath)
-  callModule(dashboardTab, "dashboard", dataSourceFile, plotsForDashboard, dashboardFilePath, geocodesFilePath, existingColumnDefs)
+  callModule(dashboardTab, "dashboard", dataSourceFile, plotsForDashboard, dashboardFilePath, geocodesFilePath, existingColumnDefs, usePostgres)
 
   observeEvent(input$inTabPanel, {
     if (input$inTabPanel == "Bar and Charts") {
@@ -39,24 +39,30 @@ plugin <- function(input, output, session, dataSourceFile, pluginName, preferenc
   })
 }
 
-fetchDataForPlugin <- function(dateRange, shouldFetchAll, dataSourceFile){
+fetchDataForPlugin <- function(dateRange, shouldFetchAll, dataSourceFile, usePostgres){
   envir <- new.env()
   showModal(modalDialog(
     withSpinner(p("")),title = "Fetching Data",
     footer = NULL, size = "s")
   )
   mysqlPool <- getMysqlConnectionPool()
-  psqlPool <- getPsqlConnectionPool()
+  psqlPool <- NULL
+  if(usePostgres){
+    psqlPool <- getPsqlConnectionPool()  
+  }
+  
   source(dataSourceFile,local=envir)
   data <- envir$fetchData(mysqlPool, psqlPool, shouldFetchAll, ymd(dateRange[1]), ymd(as.Date(dateRange[2])+1))
   removeModal()
   disconnectFromDb(mysqlPool)
-  disconnectFromDb(psqlPool)
+  if(usePostgres){
+    disconnectFromDb(psqlPool)
+  }
   envir <- NULL
   data
 }
 
-pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, colDefFilePath, existingColumnDefs) {
+pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, colDefFilePath, existingColumnDefs, usePostgres) {
   observe({
     updateSelectInput(session,
       "inColumnDefs",
@@ -67,7 +73,7 @@ pluginSearchTab <- function(input, output, session, mainTable, dataSourceFile, c
   observeEvent(input$inApply, {
     shouldFetchAll <- input$inFetchAll
     dateRange <- as.character(input$inDateRange)
-    mainTable$data <- fetchDataForPlugin(dateRange, shouldFetchAll, dataSourceFile)
+    mainTable$data <- fetchDataForPlugin(dateRange, shouldFetchAll, dataSourceFile, usePostgres)
     output$obsDT <- DT::renderDataTable(
       mainTable$data,
       options = list(paging = T),

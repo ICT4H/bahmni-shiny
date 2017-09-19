@@ -1,4 +1,4 @@
-dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath, geocodesFilePath, existingColumnDefs){
+dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboard, dashboardFilePath, geocodesFilePath, existingColumnDefs, usePostgres){
   #todo:- Defining this counter to avoid conflict of element observers.
   counter <- 1
   dashboardTabData <- reactiveValues(data = NULL)
@@ -27,7 +27,7 @@ dashboardTab <- function(input, output, session, dataSourceFile, plotsForDashboa
         plot <- plotsForDashboard$data[[name]]
         panel <- panelForDashboardPlot(name,plot,ns,dateRangeInputID,applyButtonID, plotID, removeButtonId)
         observerForRemoveFromDashboard(input, plotID, removeButtonId, plotsForDashboard, dashboardFilePath)
-        observerForDashboardFetchData(input, output,plot, dataSourceFile, applyButtonID, dateRangeInputID, plotID, existingColumnDefs)
+        observerForDashboardFetchData(input, output,plot, dataSourceFile, applyButtonID, dateRangeInputID, plotID, existingColumnDefs, usePostgres)
         counter <<- counter + 1
         panel
       })
@@ -94,7 +94,7 @@ renderPlot <- function(data, plot, existingColumnDefs){
 observerForDashboardFetchData <- function(input, output,plot,dataSourceFile, applyButtonID, dateRangeInputID, plotID, existingColumnDefs){
   observeEvent(input[[applyButtonID]], {
     dateRange <- as.character(input[[dateRangeInputID]])
-    data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile)
+    data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile, usePostgres)
     if(plot$type == "Map Plot"){
       output[[plotID]] <- renderLeaflet({
         renderPlot(data, plot, existingColumnDefs)

@@ -72,7 +72,7 @@ initializeApp <- function(input, output, session) {
     do.call(navlistPanel, myTabs)
   })
   lapply(pluginTabs, FUN = function(pluginTab){
-    callModule(plugin, tolower(pluginTab$name), pluginTab$dataSourceFile, pluginTab$name, properties$preferencesFolderPath)
+    callModule(plugin, tolower(pluginTab$name), pluginTab$dataSourceFile, pluginTab$name, properties$preferencesFolderPath, properties$usePostgres)
   })
 }
 
