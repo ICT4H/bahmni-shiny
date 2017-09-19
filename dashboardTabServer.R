@@ -91,7 +91,7 @@ renderPlot <- function(data, plot, existingColumnDefs){
   }
 }
 
-observerForDashboardFetchData <- function(input, output,plot,dataSourceFile, applyButtonID, dateRangeInputID, plotID, existingColumnDefs){
+observerForDashboardFetchData <- function(input, output,plot,dataSourceFile, applyButtonID, dateRangeInputID, plotID, existingColumnDefs, usePostgres){
   observeEvent(input[[applyButtonID]], {
     dateRange <- as.character(input[[dateRangeInputID]])
     data <- fetchDataForPlugin(dateRange, FALSE, dataSourceFile, usePostgres)
