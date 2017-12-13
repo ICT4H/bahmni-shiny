@@ -5,7 +5,7 @@ RUN wget https://download3.rstudio.org/centos5.9/x86_64/shiny-server-1.5.3.838-r
 	yum install -y --nogpgcheck shiny-server-1.5.3.838-rh5-x86_64.rpm && \
 	rm -rf /srv/shiny-server/* && \
  	cd /srv/shiny-server/ && \
- 	wget https://github.com/chethandeshpande/bahmni-shiny/archive/master.zip && \
+ 	wget https://github.com/ICT4H/bahmni-shiny/archive/master.zip && \
  	unzip master.zip && \
  	mv bahmni-shiny-master bahmni-shiny && \
  	chown shiny:shiny -R bahmni-shiny && \
