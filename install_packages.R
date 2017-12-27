@@ -1,53 +1,61 @@
-if (!"RPostgreSQL" %in% rownames(installed.packages()))
-  install.packages("RPostgreSQL", repos="http://cran.rstudio.com/")
-if (!"RMySQL" %in% rownames(installed.packages()))
-  install.packages("RMySQL", repos="http://cran.rstudio.com/")
-if (!"properties" %in% rownames(installed.packages()))
-  install.packages("properties", repos="http://cran.rstudio.com/")
 if (!"install.load" %in% rownames(installed.packages()))
   install.packages("install.load", repos="http://cran.rstudio.com/")
 library(install.load)
 if (!"devtools" %in% rownames(installed.packages()))
   install.packages("devtools", repos="http://cran.rstudio.com/")
 library(devtools)
+
+if (!"RPostgreSQL" %in% rownames(installed.packages()))
+  devtools::install_version("RPostgreSQL", version = "0.6-2", repos="http://cran.rstudio.com/")
+if (!"properties" %in% rownames(installed.packages()))
+  devtools::install_version("properties", version = "0.0-8", repos="http://cran.rstudio.com/")
 if (!"DBI" %in% rownames(installed.packages()))
-  devtools::install_github("rstats-db/DBI")
-if (!"pool" %in% rownames(installed.packages()))
-  devtools::install_github("rstudio/pool")
+  devtools::install_version("DBI", version = "0.7", repos="http://cran.rstudio.com/")
 if (!"shiny" %in% rownames(installed.packages()))
-  devtools::install_github("rstudio/shiny")
+  devtools::install_version("shiny", version = "1.0.3", repos="http://cran.rstudio.com/")
 if (!"shinycssloaders" %in% rownames(installed.packages()))
-  devtools::install_github('andrewsali/shinycssloaders')
+  devtools::install_version("shinycssloaders", version = "0.2.0", repos="http://cran.rstudio.com/")
 if (!"lubridate" %in% rownames(installed.packages()))
   devtools::install_version("lubridate", version = "1.6.0", repos="http://cran.rstudio.com/")
-
-
- pkgs_to_install_load <-
-  c(
-    "tidyr",
-    "stringr",
-    "readr",
-    "RMySQL",
-    "ggplot2",
-    "scales",
-    "eeptools",
-    "data.table",
-    "dplyr",
-    "DT",
-    "shinyjs",
-    "shinyBS",
-    "purrr",
-    "lazyeval",
-    "rjson",
-    "plotly",
-    "ggmap",
-    "leaflet",
-    "bcrypt",
-    "RSQLite",
-    "DescTools"
-  )
-lapply(pkgs_to_install_load, FUN = function(pkg){
-  if(!pkg %in% rownames(installed.packages())){
-    install.packages(pkg, repos="http://cran.rstudio.com/")
-  }
-})
+if (!"tidyr" %in% rownames(installed.packages()))
+  devtools::install_version("tidyr", version = "0.6.3", repos="http://cran.rstudio.com/")
+if (!"stringr" %in% rownames(installed.packages()))
+  devtools::install_version("stringr", version = "1.2.0", repos="http://cran.rstudio.com/")
+if (!"readr" %in% rownames(installed.packages()))
+  devtools::install_version("readr", version = "1.1.1", repos="http://cran.rstudio.com/")
+if (!"RMySQL" %in% rownames(installed.packages()))
+  devtools::install_version("RMySQL", version = "0.10.11", repos="http://cran.rstudio.com/")
+if (!"ggplot2" %in% rownames(installed.packages()))
+  devtools::install_version("ggplot2", version = "2.2.1", repos="http://cran.rstudio.com/")
+if (!"scales" %in% rownames(installed.packages()))
+  devtools::install_version("scales", version = "0.4.1", repos="http://cran.rstudio.com/")
+if (!"eeptools" %in% rownames(installed.packages()))
+  devtools::install_version("eeptools", version = "1.1.0", repos="http://cran.rstudio.com/")
+if (!"data.table" %in% rownames(installed.packages()))
+  devtools::install_version("data.table", version = "1.10.4", repos="http://cran.rstudio.com/")
+if (!"dplyr" %in% rownames(installed.packages()))
+  devtools::install_version("dplyr", version = "0.7.2", repos="http://cran.rstudio.com/")
+if (!"DT" %in% rownames(installed.packages()))
+  devtools::install_version("DT", version = "0.2", repos="http://cran.rstudio.com/")
+if (!"shinyjs" %in% rownames(installed.packages()))
+  devtools::install_version("shinyjs", version = "0.9.1", repos="http://cran.rstudio.com/")
+if (!"shinyBS" %in% rownames(installed.packages()))
+  devtools::install_version("shinyBS", version = "0.61", repos="http://cran.rstudio.com/")
+if (!"purrr" %in% rownames(installed.packages()))
+  devtools::install_version("purrr", version = "0.2.3", repos="http://cran.rstudio.com/")
+if (!"lazyeval" %in% rownames(installed.packages()))
+  devtools::install_version("lazyeval", version = "0.2.0", repos="http://cran.rstudio.com/")
+if (!"rjson" %in% rownames(installed.packages()))
+  devtools::install_version("rjson", version = "0.2.15", repos="http://cran.rstudio.com/")
+if (!"plotly" %in% rownames(installed.packages()))
+  devtools::install_version("plotly", version = "4.7.1", repos="http://cran.rstudio.com/")
+if (!"ggmap" %in% rownames(installed.packages()))
+  devtools::install_version("ggmap", version = "2.6.1", repos="http://cran.rstudio.com/")
+if (!"leaflet" %in% rownames(installed.packages()))
+  devtools::install_version("leaflet", version = "1.1.0", repos="http://cran.rstudio.com/")
+if (!"bcrypt" %in% rownames(installed.packages()))
+  devtools::install_version("bcrypt", version = "1.0", repos="http://cran.rstudio.com/")
+if (!"RSQLite" %in% rownames(installed.packages()))
+  devtools::install_version("RSQLite", version = "2.0", repos="http://cran.rstudio.com/")
+if (!"DescTools" %in% rownames(installed.packages()))
+  devtools::install_version("DescTools", version = "0.99.21", repos="http://cran.rstudio.com/")
