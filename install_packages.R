@@ -18,6 +18,8 @@ if (!"shiny" %in% rownames(installed.packages()))
   devtools::install_github("rstudio/shiny")
 if (!"shinycssloaders" %in% rownames(installed.packages()))
   devtools::install_github('andrewsali/shinycssloaders')
+if (!"lubridate" %in% rownames(installed.packages()))
+  devtools::install_version("lubridate", version = "1.6.0", repos="http://cran.rstudio.com/")
 
 
  pkgs_to_install_load <-
@@ -25,7 +27,6 @@ if (!"shinycssloaders" %in% rownames(installed.packages()))
     "tidyr",
     "stringr",
     "readr",
-    "lubridate",
     "RMySQL",
     "ggplot2",
     "scales",
