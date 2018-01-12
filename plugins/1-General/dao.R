@@ -38,7 +38,6 @@ fetchData <- function(mysqlPool, psqlPool, shouldFetchAll, startDate, endDate) {
   }
   
   allDiagnoses <- allDiagnoses %>%
-    inner_join(conceptSets, by=c("value_coded"="child")) %>%
     inner_join(conceptNames, by = c("value_coded"="concept_id")) %>%
     collect(n=Inf)
 
@@ -73,12 +72,14 @@ fetchData <- function(mysqlPool, psqlPool, shouldFetchAll, startDate, endDate) {
 
   patient <- patients %>%
     inner_join(allDiagnoses, by = c("person_id"="person_id")) %>%
+    group_by(person_id, value_coded) %>%
+    filter(obs_datetime == max(obs_datetime)) %>%
+    ungroup() %>%
     rename(ID=identifier) %>%
     rename(Diagnosis=name) %>%
     rename(`Visit Date`=obs_datetime) %>%
-    select(ID, Gender, Age, District, State, `Visit Date`, Diagnosis, DiagnosisType) %>%
+    select(ID, Gender, Age, District, State, `Visit Date`, Diagnosis) %>%
     collect(n=Inf)
 
-  print(patient)
   patient
 }
