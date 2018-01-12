@@ -179,6 +179,13 @@ uiForPlots <- function(id, ns){
                  withSpinner(tableOutput(ns("tableDF")))
                  ),
         tabPanel("Bar Chart",
+                 fluidRow(
+                  column(4, checkboxInput(ns("inBarFilter"), "Filter Items", value = F)),
+                  column(4, numericInput(ns("inBarNumberOfItems"), "Number Of Items", value =
+                            "5")),
+                  column(4, checkboxInput(ns("inBarAscending"), "Ascending",
+                            value = F))
+                ),
                  fluidRow(column(
                    12,
                    withSpinner(plotlyOutput(ns("barPlot")))
@@ -203,6 +210,13 @@ uiForPlots <- function(id, ns){
                    withSpinner(leafletOutput(ns("mapPlot")))
                  ))),
         tabPanel("Line Chart",
+                fluidRow(
+                    column(4, checkboxInput(ns("inLineFilter"), "Filter Items", value = F)),
+                    column(4, numericInput(ns("inLineNumberOfItems"), "Number Of Items", value =
+                              "5")),
+                    column(4, checkboxInput(ns("inLineAscending"), "Ascending",
+                              value = F))
+                  ),
                fluidRow(column(
                  12,
                  radioButtons(ns("inFunction"), "Function",

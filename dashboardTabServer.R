@@ -74,10 +74,12 @@ renderPlot <- function(data, plot, existingColumnDefs){
   if(!is.null(plot$factor2) && (plot$factor2 %in% derivedColumnNames)){
     data <- addDerivedColumn(existingColumnDefs, plot$factor2, data)
   }
+  extraInputs <- list()
+  extraInputs$filter <- FALSE
   chartOption <- plot$type
   selected_cols <- c(plot$factor1, plot$factor2)
   if(chartOption == "Bar Chart"){
-      showBarChart(data, plot$timeInterval, plot$isProportional, selected_cols)
+      showBarChart(data, plot$timeInterval, plot$isProportional, selected_cols, extraInputs)
   }else if(chartOption == "Histogram"){
     showHistogram(data,NULL, selected_cols)
   }else if(chartOption == "Scatter Plot"){
@@ -85,7 +87,7 @@ renderPlot <- function(data, plot, existingColumnDefs){
   }else if(chartOption == "Map Plot"){
     showMapPlot(data, selected_cols, geocodesFilePath)
   }else if(chartOption == "Line Chart"){
-    showLineChart(data,plot$timeInterval,plot$isProportional,"none",selected_cols)
+    showLineChart(data,plot$timeInterval,plot$isProportional,"none",selected_cols, extraInputs)
   }else if(chartOption == "Box Plot"){
     showBoxPlot(data,plot$timeInterval,selected_cols)
   }

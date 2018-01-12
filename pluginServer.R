@@ -423,7 +423,14 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
       output$tableDF <- renderTable(as.matrix(tableop), rownames = T)
     }else if(chartOption == "Bar Chart"){
       output$barPlot <- renderPlotly({
-        mainPlot$data <- showBarChart(obs, input$inTimeInterval, input$inProportional, selected_cols)
+        extraInputs <- list()
+        extraInputs$filter <- FALSE
+        if(input$inBarFilter){
+          extraInputs$filter <- TRUE
+          extraInputs$noOfItems <- input$inBarNumberOfItems
+          extraInputs$ascending <- input$inBarAscending
+        }
+        mainPlot$data <- showBarChart(obs, input$inTimeInterval, input$inProportional, selected_cols, extraInputs)
         mainPlot$data
       })
     }else if(chartOption == "Histogram"){
@@ -443,7 +450,14 @@ barChartTab <- function(input, output, session, mainTable, tableData, mainPlot, 
       })
     }else if(chartOption == "Line Chart"){
       output$lineChart <- renderPlotly({
-        mainPlot$data <- showLineChart(obs,input$inTimeInterval,input$inProportional,input$inFunction,selected_cols)
+        extraInputs <- list()
+        extraInputs$filter <- FALSE
+        if(input$inLineFilter){
+          extraInputs$filter <- TRUE
+          extraInputs$noOfItems <- input$inLineNumberOfItems
+          extraInputs$ascending <- input$inLineAscending
+        }
+        mainPlot$data <- showLineChart(obs,input$inTimeInterval,input$inProportional,input$inFunction,selected_cols, extraInputs)
         mainPlot$data
       })
     }else if(chartOption == "Box Plot"){

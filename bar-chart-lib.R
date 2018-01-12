@@ -17,12 +17,13 @@ formatTimeSeries <- function(data, interval){
   return (list(data, scale_X, uiText))
 }
 
-showBarChart <- function(data,interval, isProportional, selected_cols){
+showBarChart <- function(data, interval, isProportional, selected_cols, extraInputs){
+  #The formatTimeSeries function converts the data into given timeintervals
+  #It decides the Scale for x axis and the text on X axis points
   timeSeriesData <- formatTimeSeries(data, interval)    
   data <- timeSeriesData[[1]]
   scale_X <- timeSeriesData[[2]]
   uiText <- timeSeriesData[[3]]
-
   chartData <- data %>% 
     group_by_(.dots = c(lapply(selected_cols,as.name), interval)) %>%
     summarise(total = n())
@@ -32,6 +33,20 @@ showBarChart <- function(data,interval, isProportional, selected_cols){
     mutate(countT= sum(total)) %>%
     group_by_(.dots = c(lapply(selected_cols,as.name))) %>%
     mutate(percentage=round(100*total/countT,2))
+
+  if(extraInputs$filter){
+    x = extraInputs$noOfItems
+    if(extraInputs$ascending){
+      x = -extraInputs$noOfItems
+    }
+    if(length(selected_cols) == 2){
+      chartData <- chartData %>% ungroup() %>% group_by_(interval, selected_cols[2]) %>% top_n(x) %>% filter(row_number() <= extraInputs$noOfItems)
+      prapotionalChartData <- prapotionalChartData %>% ungroup() %>% group_by_(interval, selected_cols[2]) %>% top_n(x) %>% filter(row_number() <= extraInputs$noOfItems)
+    }else{
+      chartData <- chartData %>% ungroup() %>% group_by_(interval) %>% top_n(x) %>% filter(row_number() <= extraInputs$noOfItems)
+      prapotionalChartData <- prapotionalChartData %>% ungroup() %>% group_by_(interval) %>% top_n(x) %>% filter(row_number() <= extraInputs$noOfItems)
+    }
+  }
 
   if(isProportional){
     plot <- ggplot(prapotionalChartData, aes_string(interval, "percentage", fill = as.name(selected_cols[1]), text = uiText)) +
@@ -119,7 +134,7 @@ showMapPlot <- function(data, selected_cols, geocodesFilePath){
     )
 }
 
-showLineChart <- function(data,interval, isProportional, aggFunc ,selected_cols){
+showLineChart <- function(data,interval, isProportional, aggFunc ,selected_cols, extraInputs){
   timeSeriesData <- formatTimeSeries(data, interval)
   data <- timeSeriesData[[1]]
   scale_X <- timeSeriesData[[2]]
@@ -131,6 +146,20 @@ showLineChart <- function(data,interval, isProportional, aggFunc ,selected_cols)
       mutate(countT= sum(total)) %>%
       group_by_(.dots = c(lapply(selected_cols,as.name))) %>%
       mutate(percentage=round(100*total/countT,2))
+
+  if(extraInputs$filter){
+    x = extraInputs$noOfItems
+    if(extraInputs$ascending){
+      x = -extraInputs$noOfItems
+    }
+    if(length(selected_cols) == 2){
+      chartData <- chartData %>% ungroup() %>% group_by_(interval, selected_cols[2]) %>% top_n(x) %>% filter(row_number() <= extraInputs$noOfItems)
+      prapotionalChartData <- prapotionalChartData %>% ungroup() %>% group_by_(interval, selected_cols[2]) %>% top_n(x) %>% filter(row_number() <= extraInputs$noOfItems)
+    }else{
+      chartData <- chartData %>% ungroup() %>% group_by_(interval) %>% top_n(x) %>% filter(row_number() <= extraInputs$noOfItems)
+      prapotionalChartData <- prapotionalChartData %>% ungroup() %>% group_by_(interval) %>% top_n(x) %>% filter(row_number() <= extraInputs$noOfItems)
+    }
+  }
 
   if(isProportional){
     chartData <- prapotionalChartData

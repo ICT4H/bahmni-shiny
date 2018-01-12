@@ -14,7 +14,6 @@ fail_if_error_in_install <- function(package, version){
   withCallingHandlers(install(package, version), warning = function(w) stop(w))
 }
 
-
 fail_if_error_in_install("RPostgreSQL", "0.6-2")
 fail_if_error_in_install("properties", "0.0-8")
 fail_if_error_in_install("DBI", "0.7")
@@ -30,6 +29,7 @@ fail_if_error_in_install("scales", "0.4.1")
 fail_if_error_in_install("RcppEigen", "0.3.3.3.0")
 fail_if_error_in_install("eeptools", "1.1.0")
 fail_if_error_in_install("data.table", "1.10.4")
+fail_if_error_in_install("dbplyr", "1.1.0")
 fail_if_error_in_install("dplyr", "0.7.2")
 fail_if_error_in_install("DT", "0.2")
 fail_if_error_in_install("shinyjs", "0.9.1")
